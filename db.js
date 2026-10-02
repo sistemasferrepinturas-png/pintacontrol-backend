@@ -1,11 +1,12 @@
 const { Pool } = require('pg');
 
+// Si existe la variable de entorno DATABASE_URL (en Render), usa SSL seguro.
+// Si no, utiliza la configuración local.
+const isProduction = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL;
+
 const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'pinta_control',
-  password: process.env.DB_PASSWORD || 'Admin794613',
-  port: process.env.DB_PORT || 5432,
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pinta_control',
+  ssl: isProduction ? { rejectUnauthorized: false } : false
 });
 
 module.exports = pool;
