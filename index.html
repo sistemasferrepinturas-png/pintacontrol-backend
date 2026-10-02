@@ -444,7 +444,7 @@
     }
 
     // 3. REPARTIDORES
-    async function cargarRepartidores() {
+async function cargarRepartidores() {
   try {
     const [resRep, resSuc] = await Promise.all([
       fetch(`${API_URL}/repartidores`),
@@ -453,12 +453,10 @@
     const reps = await resRep.json();
     const sucs = await resSuc.json();
 
-    // Combo Formulario
     const selForm = document.getElementById('repSucursal');
     selForm.innerHTML = '';
     sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
 
-    // Tabla con columna de Teléfono
     const tbody = document.getElementById('tablaRepartidores');
     tbody.innerHTML = '';
     reps.forEach(r => {
@@ -470,14 +468,18 @@
         <tr class="hover:bg-slate-800/40">
           <td class="p-3 font-semibold text-white">${r.nombre}</td>
           <td class="p-3 text-blue-400 font-medium">${r.telefono ? '📞 ' + r.telefono : '<span class="text-slate-500">Sin Registrar</span>'}</td>
+          <td class="p-3 font-bold text-amber-400">🔑 ${r.pin || '1234'}</td>
           <td class="p-3 text-slate-300">${r.sucursal || 'Sin Asignar'}</td>
           <td class="p-3">
             <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
               ${opcionesSucs}
             </select>
           </td>
-          <td class="p-3">
-            <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
+          <td class="p-3 flex gap-2">
+            <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin || '1234'}')" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-500/20 px-2 py-1 rounded text-xs transition">
+              Cambiar PIN
+            </button>
+            <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2 py-1 rounded text-xs transition">
               Eliminar
             </button>
           </td>
@@ -486,41 +488,44 @@
     });
   } catch (e) {}
 }
-    async function guardarRepartidor() {
-      const nombre = document.getElementById('repNombre').value;
-      const id_sucursal = document.getElementById('repSucursal').value;
-      const telefono = document.getElementById('repTelefono').value;
 
-      if (!nombre) return alert('Ingresa el nombre del repartidor.');
+async function guardarRepartidor() {
+  const nombre = document.getElementById('repNombre').value;
+  const id_sucursal = document.getElementById('repSucursal').value;
+  const telefono = document.getElementById('repTelefono').value;
+  const pin = document.getElementById('repPin').value;
 
-      const res = await fetch(`${API_URL}/repartidores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, id_sucursal, telefono })
-      });
+  if (!nombre) return alert('Ingresa el nombre del repartidor.');
+  if (pin && pin.length !== 4) return alert('El PIN debe ser de 4 dígitos.');
 
-      if (res.ok) {
-        alert('Repartidor registrado correctamente.');
-        document.getElementById('repNombre').value = '';
-        document.getElementById('repTelefono').value = '';
-        cargarRepartidores();
-      }
-    }
+  const res = await fetch(`${API_URL}/repartidores`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
+  });
 
-    async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
-      await fetch(`${API_URL}/repartidores/${id_usuario}/sucursal`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_sucursal })
-      });
-      cargarRepartidores();
-    }
+  if (res.ok) {
+    alert('Repartidor registrado correctamente.');
+    document.getElementById('repNombre').value = '';
+    document.getElementById('repTelefono').value = '';
+    document.getElementById('repPin').value = '';
+    cargarRepartidores();
+  }
+}
 
-    async function eliminarRepartidor(id) {
-      if (!confirm('¿Eliminar repartidor?')) return;
-      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
-      cargarRepartidores();
-    }
+async function editarPinRepartidor(id_usuario, pinActual) {
+  const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
+  if (nuevoPin && nuevoPin.length === 4) {
+    await fetch(`${API_URL}/repartidores/${id_usuario}/pin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: nuevoPin })
+    });
+    cargarRepartidores();
+  } else if (nuevoPin !== null) {
+    alert('El PIN debe constar exactamente de 4 dígitos.');
+  }
+}
 
     // 4. MOTOS
     async function cargarMotos() {
