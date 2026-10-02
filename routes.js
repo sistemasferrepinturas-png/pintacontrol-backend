@@ -137,13 +137,14 @@ router.get('/motos', async (req, res) => {
 
     if (id_sucursal) {
       query += " AND v.id_sucursal = $1";
-      params.push(id_sucursal);
+      params.push(parseInt(id_sucursal, 10));
     }
     query += " ORDER BY v.id_vehiculo ASC";
 
     const resu = await pool.query(query);
     res.json(resu.rows);
   } catch (e) {
+    console.error("Error al consultar motos:", e);
     res.status(500).json({ error: 'Error al consultar motos.' });
   }
 });
