@@ -66,12 +66,12 @@ router.put('/sucursales/:id/estado-uso', async (req, res) => {
 });
 
 /* ==========================================================================
-   2. REPARTIDORES (Obtener, Crear, Reasignar, Eliminar)
+   2. REPARTIDORES (Con PIN de 4 dígitos)
    ========================================================================== */
 router.get('/repartidores', async (req, res) => {
   try {
     let query = `
-      SELECT u.id_usuario, u.nombre, u.email, u.telefono, u.id_sucursal, s.nombre AS sucursal
+      SELECT u.id_usuario, u.nombre, u.email, u.telefono, u.pin, u.id_sucursal, s.nombre AS sucursal
       FROM usuarios u
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
       WHERE u.rol = 'REPARTIDOR' AND u.activo = TRUE
@@ -86,47 +86,38 @@ router.get('/repartidores', async (req, res) => {
 
 router.post('/repartidores', async (req, res) => {
   try {
-    const { nombre, id_sucursal, telefono } = req.body;
+    const { nombre, id_sucursal, telefono, pin } = req.body;
     if (!nombre || !id_sucursal) return res.status(400).json({ error: 'Nombre y sucursal son obligatorios.' });
 
-    // Si el repartidor existía inactivo, se reactiva
+    const pinFinal = pin && pin.length === 4 ? pin : '1234';
+
     const exist = await pool.query("SELECT id_usuario FROM usuarios WHERE LOWER(nombre) = LOWER($1)", [nombre.trim()]);
     if (exist.rows.length > 0) {
       const act = await pool.query(
-        "UPDATE usuarios SET activo = TRUE, id_sucursal = $1, telefono = $2 WHERE id_usuario = $3 RETURNING *",
-        [id_sucursal, telefono || null, exist.rows[0].id_usuario]
+        "UPDATE usuarios SET activo = TRUE, id_sucursal = $1, telefono = $2, pin = $3 WHERE id_usuario = $4 RETURNING *",
+        [id_sucursal, telefono || null, pinFinal, exist.rows[0].id_usuario]
       );
       return res.status(200).json(act.rows[0]);
     }
 
-    const query = "INSERT INTO usuarios (nombre, id_sucursal, telefono, rol, activo) VALUES ($1, $2, $3, 'REPARTIDOR', TRUE) RETURNING *";
-    const nuevo = await pool.query(query, [nombre.trim(), id_sucursal, telefono || null]);
+    const query = "INSERT INTO usuarios (nombre, id_sucursal, telefono, pin, rol, activo) VALUES ($1, $2, $3, $4, 'REPARTIDOR', TRUE) RETURNING *";
+    const nuevo = await pool.query(query, [nombre.trim(), id_sucursal, telefono || null, pinFinal]);
     res.status(201).json(nuevo.rows[0]);
   } catch (e) {
-    console.error('Error repartidor:', e);
     res.status(500).json({ error: 'Error al registrar repartidor.' });
   }
 });
 
-router.put('/repartidores/:id_usuario/sucursal', async (req, res) => {
+router.put('/repartidores/:id_usuario/pin', async (req, res) => {
   try {
     const { id_usuario } = req.params;
-    const { id_sucursal } = req.body;
-    const query = "UPDATE usuarios SET id_sucursal = $1 WHERE id_usuario = $2 RETURNING *";
-    const actual = await pool.query(query, [id_sucursal, id_usuario]);
-    res.json({ mensaje: 'Sucursal corregida correctamente.', repartidor: actual.rows[0] });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al reasignar sucursal.' });
-  }
-});
+    const { pin } = req.body;
+    if (!pin || pin.length !== 4) return res.status(400).json({ error: 'El PIN debe ser exactamente de 4 dígitos.' });
 
-router.delete('/repartidores/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await pool.query("UPDATE usuarios SET activo = FALSE WHERE id_usuario = $1", [id]);
-    res.json({ mensaje: 'Repartidor eliminado correctamente.' });
+    await pool.query("UPDATE usuarios SET pin = $1 WHERE id_usuario = $2", [pin, id_usuario]);
+    res.json({ mensaje: 'PIN actualizado correctamente.' });
   } catch (e) {
-    res.status(500).json({ error: 'Error al eliminar repartidor.' });
+    res.status(500).json({ error: 'Error al actualizar PIN.' });
   }
 });
 
