@@ -208,14 +208,17 @@ router.put('/motos/:id_vehiculo/mantenimiento', async (req, res) => {
     const { id_vehiculo } = req.params;
     const { estado, detalles_mecanicos } = req.body;
 
+    // Si el estado vuelve a ser DISPONIBLE, limpiamos los detalles mecánicos automáticamente
+    const esDisponible = estado === 'DISPONIBLE';
+    const detalleLimpio = esDisponible ? null : (detalles_mecanicos || null);
+
     const query = `
       UPDATE vehiculos 
       SET estado = $1, detalles_mecanicos = $2, requiere_mantenimiento = $3 
       WHERE id_vehiculo = $4 
       RETURNING *
     `;
-    const requiere = estado !== 'DISPONIBLE';
-    const actual = await pool.query(query, [estado, detalles_mecanicos || null, requiere, id_vehiculo]);
+    const actual = await pool.query(query, [estado, detalleLimpio, !esDisponible, id_vehiculo]);
     res.json({ mensaje: 'Estado mecánico actualizado.', moto: actual.rows[0] });
   } catch (e) {
     res.status(500).json({ error: 'Error al actualizar estado mecánico.' });
