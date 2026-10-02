@@ -547,101 +547,122 @@
     }
 
     // 4. MOTOS
-    async function cargarMotos() {
-      try {
-        const [resMot, resSuc] = await Promise.all([
-          fetch(`${API_URL}/motos`),
-          fetch(`${API_URL}/sucursales`)
-        ]);
-        const motos = await resMot.json();
-        const sucs = await resSuc.json();
+async function cargarMotos() {
+  try {
+    const [resMot, resSuc] = await Promise.all([
+      fetch(`${API_URL}/motos`),
+      fetch(`${API_URL}/sucursales`)
+    ]);
+    const motos = await resMot.json();
+    const sucs = await resSuc.json();
 
-        const selForm = document.getElementById('motoSucursal');
-        selForm.innerHTML = '';
-        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+    const selForm = document.getElementById('motoSucursal');
+    selForm.innerHTML = '';
+    sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
 
-        const tbody = document.getElementById('tablaMotos');
-        tbody.innerHTML = '';
+    const tbody = document.getElementById('tablaMotos');
+    tbody.innerHTML = '';
 
-        motos.forEach(m => {
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
-              <td class="p-3 font-semibold text-white">${m.placa} <span class="block text-xs font-normal text-slate-400">${m.marca_modelo}</span></td>
-              <td class="p-3 text-slate-300">${m.sucursal || 'Sin Asignar'}</td>
-              <td class="p-3 font-bold text-blue-400">${m.kilometraje_actual} km</td>
-              <td class="p-3">
-                <select onchange="actualizarMantenimientoMoto(${m.id_vehiculo}, this.value, '${m.detalles_mecanicos || ''}')" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
-                  <option value="DISPONIBLE" ${m.estado === 'DISPONIBLE' ? 'selected' : ''}>🟢 DISPONIBLE</option>
-                  <option value="CON_DETALLE" ${m.estado === 'CON_DETALLE' ? 'selected' : ''}>🟡 CON DETALLE MECÁNICO</option>
-                  <option value="EN_TALLER" ${m.estado === 'EN_TALLER' ? 'selected' : ''}>🔴 EN TALLER</option>
-                </select>
-              </td>
-              <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
-              <td class="p-3 flex gap-2">
-                <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded text-xs">
-                  Editar Detalle
-                </button>
-                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded text-xs">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      } catch (e) {}
-    }
+    motos.forEach(m => {
+      tbody.innerHTML += `
+        <tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-semibold text-white">${m.placa} <span class="block text-xs font-normal text-slate-400">${m.marca_modelo}</span></td>
+          <td class="p-3 text-slate-300">${m.sucursal || 'Sin Asignar'}</td>
+          <td class="p-3 font-bold text-blue-400">${m.kilometraje_actual} km</td>
+          <td class="p-3">
+            <select onchange="actualizarMantenimientoMoto(${m.id_vehiculo}, this.value, '${m.detalles_mecanicos || ''}')" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
+              <option value="DISPONIBLE" ${m.estado === 'DISPONIBLE' ? 'selected' : ''}>🟢 DISPONIBLE</option>
+              <option value="CON_DETALLE" ${m.estado === 'CON_DETALLE' ? 'selected' : ''}>🟡 CON DETALLE MECÁNICO</option>
+              <option value="EN_TALLER" ${m.estado === 'EN_TALLER' ? 'selected' : ''}>🔴 EN TALLER</option>
+            </select>
+          </td>
+          <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
+          <td class="p-3 flex gap-2">
+            <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
+              ✏️ Editar Km
+            </button>
+            <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">
+              🛠️ Detalle
+            </button>
+            <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (e) {}
+}
 
-    async function guardarMoto() {
-      const placa = document.getElementById('motoPlaca').value;
-      const marca_modelo = document.getElementById('motoModelo').value;
-      const id_sucursal = document.getElementById('motoSucursal').value;
-      const kilometraje_actual = document.getElementById('motoKm').value;
+async function editarKmMoto(id_vehiculo, kmActual) {
+  const nuevoKm = prompt('Ingresa el nuevo kilometraje actual para esta moto:', kmActual);
+  if (nuevoKm !== null && !isNaN(nuevoKm) && nuevoKm.trim() !== '') {
+    const res = await fetch(`${API_URL}/motos/${id_vehiculo}/kilometraje`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kilometraje_actual: parseInt(nuevoKm, 10) })
+    });
 
-      if (!placa) return alert('Ingresa la placa de la moto.');
-
-      const res = await fetch(`${API_URL}/motos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placa, marca_modelo, id_sucursal, kilometraje_actual: parseInt(kilometraje_actual || 0, 10) })
-      });
-
-      if (res.ok) {
-        alert('Moto registrada con éxito.');
-        document.getElementById('motoPlaca').value = '';
-        document.getElementById('motoModelo').value = '';
-        document.getElementById('motoKm').value = '';
-        cargarMotos();
-      }
-    }
-
-    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
-      const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
-
-      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
-      });
+    if (res.ok) {
+      alert('Kilometraje actualizado con éxito.');
       cargarMotos();
+    } else {
+      alert('Error al actualizar el kilometraje.');
     }
+  }
+}
 
-    async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
-      const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
-      if (nuevoDetalle !== null) {
-        await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: estadoActual, detalles_mecanicos: nuevoDetalle })
-        });
-        cargarMotos();
-      }
-    }
+async function guardarMoto() {
+  const placa = document.getElementById('motoPlaca').value;
+  const marca_modelo = document.getElementById('motoModelo').value;
+  const id_sucursal = document.getElementById('motoSucursal').value;
+  const kilometraje_actual = document.getElementById('motoKm').value;
 
-    async function eliminarMoto(id) {
-      if (!confirm('¿Eliminar esta moto?')) return;
-      await fetch(`${API_URL}/motos/${id}`, { method: 'DELETE' });
-      cargarMotos();
-    }
+  if (!placa) return alert('Ingresa la placa de la moto.');
+
+  const res = await fetch(`${API_URL}/motos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placa, marca_modelo, id_sucursal, kilometraje_actual: parseInt(kilometraje_actual || 0, 10) })
+  });
+
+  if (res.ok) {
+    alert('Moto registrada con éxito.');
+    document.getElementById('motoPlaca').value = '';
+    document.getElementById('motoModelo').value = '';
+    document.getElementById('motoKm').value = '';
+    cargarMotos();
+  }
+}
+
+async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
+  const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
+
+  await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
+  });
+  cargarMotos();
+}
+
+async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
+  const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
+  if (nuevoDetalle !== null) {
+    await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: estadoActual, detalles_mecanicos: nuevoDetalle })
+    });
+    cargarMotos();
+  }
+}
+
+async function eliminarMoto(id) {
+  if (!confirm('¿Eliminar esta moto?')) return;
+  await fetch(`${API_URL}/motos/${id}`, { method: 'DELETE' });
+  cargarMotos();
+}
 
     // CARGA INICIAL
     cargarMonitoreo();
