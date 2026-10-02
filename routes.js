@@ -218,6 +218,24 @@ router.delete('/motos/:id', async (req, res) => {
   }
 });
 
+// Actualizar kilometraje manual de una moto
+router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
+  try {
+    const { id_vehiculo } = req.params;
+    const { kilometraje_actual } = req.body;
+
+    if (kilometraje_actual === undefined || isNaN(kilometraje_actual)) {
+      return res.status(400).json({ error: 'Ingresa un kilometraje válido.' });
+    }
+
+    const query = "UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2 RETURNING *";
+    const actual = await pool.query(query, [parseInt(kilometraje_actual, 10), id_vehiculo]);
+    res.json({ mensaje: 'Kilometraje actualizado correctamente.', moto: actual.rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al actualizar el kilometraje.' });
+  }
+});
+
 /* ==========================================================================
    4. MONITOREO Y OPERACIONES MÓVILES
    ========================================================================== */
