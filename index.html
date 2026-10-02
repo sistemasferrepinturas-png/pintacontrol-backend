@@ -57,17 +57,22 @@
             <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA FIN:</label>
             <input type="date" id="filtroFechaFin" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
           </div>
-          <button onclick="cargarMonitoreo()" class="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition">
-            🔍 Filtrar
-          </button>
+          <div class="flex gap-2 mt-5">
+            <button onclick="cargarMonitoreo()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1.5 shadow">
+              🔍 Filtrar
+            </button>
+            <button onclick="cargarMonitoreo()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1.5 border border-slate-600 shadow">
+              🔄 Actualizar
+            </button>
+          </div>
         </div>
 
-        <div class="flex gap-3">
-          <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-            📄 Exportar Excel
-          </button>
-        </div>
-      </div>
+  <div class="flex gap-3 mt-2 sm:mt-0">
+    <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow">
+      📄 Exportar Excel
+    </button>
+  </div>
+</div>
 
       <!-- TARJETAS DE MÉTRICAS -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -640,6 +645,15 @@
 
     // CARGA INICIAL
     cargarMonitoreo();
+
+    // Auto-refresco del monitoreo cada 30 segundos si la pestaña activa es monitoreo
+setInterval(() => {
+  const secMonitoreo = document.getElementById('sec-monitoreo');
+  if (secMonitoreo && !secMonitoreo.classList.contains('hidden')) {
+    cargarMonitoreo();
+  }
+}, 30000);
+    
   </script>
 </body>
 </html>
