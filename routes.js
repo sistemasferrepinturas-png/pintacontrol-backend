@@ -70,22 +70,14 @@ router.put('/sucursales/:id/estado-uso', async (req, res) => {
    ========================================================================== */
 router.get('/repartidores', async (req, res) => {
   try {
-    const { id_sucursal } = req.query;
     let query = `
       SELECT u.id_usuario, u.nombre, u.email, u.telefono, u.id_sucursal, s.nombre AS sucursal
       FROM usuarios u
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
       WHERE u.rol = 'REPARTIDOR' AND u.activo = TRUE
+      ORDER BY u.nombre ASC
     `;
-    const params = [];
-
-    if (id_sucursal) {
-      query += " AND u.id_sucursal = $1";
-      params.push(id_sucursal);
-    }
-    query += " ORDER BY u.nombre ASC";
-
-    const resu = await pool.query(query, params);
+    const resu = await pool.query(query);
     res.json(resu.rows);
   } catch (e) {
     res.status(500).json({ error: 'Error al consultar repartidores.' });
