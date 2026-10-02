@@ -197,24 +197,24 @@
       </div>
 
       <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-  <h2 class="text-lg font-bold text-white mb-4">👥 Lista de Repartidores</h2>
-  <div class="overflow-x-auto">
-    <table class="w-full text-left text-sm">
-      <thead>
-        <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-        <th class="p-3">REPARTIDOR</th>
-        <th class="p-3">TELÉFONO</th>
-        <th class="p-3">PIN ACCESO</th>
-        <th class="p-3">SUCURSAL ACTUAL</th>
-        <th class="p-3">CAMBIAR SUCURSAL</th>
-        <th class="p-3">ACCIÓN</th>
-      </tr>
-      </thead>
-      <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
-    </table>
-  </div>
-</div> 
- </section>
+        <h2 class="text-lg font-bold text-white mb-4">👥 Lista de Repartidores</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">REPARTIDOR</th>
+                <th class="p-3">TELÉFONO</th>
+                <th class="p-3">PIN ACCESO</th>
+                <th class="p-3">SUCURSAL ACTUAL</th>
+                <th class="p-3">CAMBIAR SUCURSAL</th>
+                <th class="p-3">ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
     <!-- PESTAÑA 4: MOTOS & MANTENIMIENTO -->
     <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -266,13 +266,12 @@
   </main>
 
   <script>
-    // URL PÚBLICA DE TU BACKEND EN RENDER
+    // URL PÚBLICA EN RENDER
     const API_URL = 'https://pintacontrol-backend.onrender.com/api';
 
     let datosMonitoreoGlobal = [];
     let listaSucursalesGlobal = [];
 
-    // Inicializar fechas hoy
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('filtroFechaInicio').value = hoy;
     document.getElementById('filtroFechaFin').value = hoy;
@@ -444,88 +443,103 @@
     }
 
     // 3. REPARTIDORES
-async function cargarRepartidores() {
-  try {
-    const [resRep, resSuc] = await Promise.all([
-      fetch(`${API_URL}/repartidores`),
-      fetch(`${API_URL}/sucursales`)
-    ]);
-    const reps = await resRep.json();
-    const sucs = await resSuc.json();
+    async function cargarRepartidores() {
+      try {
+        const [resRep, resSuc] = await Promise.all([
+          fetch(`${API_URL}/repartidores`),
+          fetch(`${API_URL}/sucursales`)
+        ]);
+        const reps = await resRep.json();
+        const sucs = await resSuc.json();
 
-    const selForm = document.getElementById('repSucursal');
-    selForm.innerHTML = '';
-    sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+        const selForm = document.getElementById('repSucursal');
+        selForm.innerHTML = '';
+        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
 
-    const tbody = document.getElementById('tablaRepartidores');
-    tbody.innerHTML = '';
-    reps.forEach(r => {
-      let opcionesSucs = sucs.map(s => 
-        `<option value="${s.id_sucursal}" ${s.id_sucursal === r.id_sucursal ? 'selected' : ''}>${s.nombre}</option>`
-      ).join('');
+        const tbody = document.getElementById('tablaRepartidores');
+        tbody.innerHTML = '';
+        reps.forEach(r => {
+          let opcionesSucs = sucs.map(s => 
+            `<option value="${s.id_sucursal}" ${s.id_sucursal === r.id_sucursal ? 'selected' : ''}>${s.nombre}</option>`
+          ).join('');
 
-      tbody.innerHTML += `
-        <tr class="hover:bg-slate-800/40">
-          <td class="p-3 font-semibold text-white">${r.nombre}</td>
-          <td class="p-3 text-blue-400 font-medium">${r.telefono ? '📞 ' + r.telefono : '<span class="text-slate-500">Sin Registrar</span>'}</td>
-          <td class="p-3 font-bold text-amber-400">🔑 ${r.pin || '1234'}</td>
-          <td class="p-3 text-slate-300">${r.sucursal || 'Sin Asignar'}</td>
-          <td class="p-3">
-            <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
-              ${opcionesSucs}
-            </select>
-          </td>
-          <td class="p-3 flex gap-2">
-            <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin || '1234'}')" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-500/20 px-2 py-1 rounded text-xs transition">
-              Cambiar PIN
-            </button>
-            <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2 py-1 rounded text-xs transition">
-              Eliminar
-            </button>
-          </td>
-        </tr>
-      `;
-    });
-  } catch (e) {}
-}
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-semibold text-white">${r.nombre}</td>
+              <td class="p-3 text-blue-400 font-medium">${r.telefono ? '📞 ' + r.telefono : '<span class="text-slate-500">Sin Registrar</span>'}</td>
+              <td class="p-3 font-bold text-amber-400">🔑 ${r.pin || '1234'}</td>
+              <td class="p-3 text-slate-300">${r.sucursal || 'Sin Asignar'}</td>
+              <td class="p-3">
+                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
+                  ${opcionesSucs}
+                </select>
+              </td>
+              <td class="p-3 flex gap-2">
+                <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin || '1234'}')" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-500/20 px-2 py-1 rounded text-xs transition">
+                  Cambiar PIN
+                </button>
+                <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2 py-1 rounded text-xs transition">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) { console.error('Error repartidores:', e); }
+    }
 
-async function guardarRepartidor() {
-  const nombre = document.getElementById('repNombre').value;
-  const id_sucursal = document.getElementById('repSucursal').value;
-  const telefono = document.getElementById('repTelefono').value;
-  const pin = document.getElementById('repPin').value;
+    async function guardarRepartidor() {
+      const nombre = document.getElementById('repNombre').value;
+      const id_sucursal = document.getElementById('repSucursal').value;
+      const telefono = document.getElementById('repTelefono').value;
+      const pin = document.getElementById('repPin').value;
 
-  if (!nombre) return alert('Ingresa el nombre del repartidor.');
-  if (pin && pin.length !== 4) return alert('El PIN debe ser de 4 dígitos.');
+      if (!nombre) return alert('Ingresa el nombre del repartidor.');
+      if (pin && pin.length !== 4) return alert('El PIN debe ser de 4 dígitos.');
 
-  const res = await fetch(`${API_URL}/repartidores`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
-  });
+      const res = await fetch(`${API_URL}/repartidores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
+      });
 
-  if (res.ok) {
-    alert('Repartidor registrado correctamente.');
-    document.getElementById('repNombre').value = '';
-    document.getElementById('repTelefono').value = '';
-    document.getElementById('repPin').value = '';
-    cargarRepartidores();
-  }
-}
+      if (res.ok) {
+        alert('Repartidor registrado correctamente.');
+        document.getElementById('repNombre').value = '';
+        document.getElementById('repTelefono').value = '';
+        document.getElementById('repPin').value = '';
+        cargarRepartidores();
+      }
+    }
 
-async function editarPinRepartidor(id_usuario, pinActual) {
-  const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
-  if (nuevoPin && nuevoPin.length === 4) {
-    await fetch(`${API_URL}/repartidores/${id_usuario}/pin`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: nuevoPin })
-    });
-    cargarRepartidores();
-  } else if (nuevoPin !== null) {
-    alert('El PIN debe constar exactamente de 4 dígitos.');
-  }
-}
+    async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
+      await fetch(`${API_URL}/repartidores/${id_usuario}/sucursal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_sucursal })
+      });
+      cargarRepartidores();
+    }
+
+    async function editarPinRepartidor(id_usuario, pinActual) {
+      const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
+      if (nuevoPin && nuevoPin.length === 4) {
+        await fetch(`${API_URL}/repartidores/${id_usuario}/pin`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: nuevoPin })
+        });
+        cargarRepartidores();
+      } else if (nuevoPin !== null) {
+        alert('El PIN debe constar exactamente de 4 dígitos.');
+      }
+    }
+
+    async function eliminarRepartidor(id) {
+      if (!confirm('¿Eliminar repartidor?')) return;
+      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
+      cargarRepartidores();
+    }
 
     // 4. MOTOS
     async function cargarMotos() {
@@ -537,12 +551,10 @@ async function editarPinRepartidor(id_usuario, pinActual) {
         const motos = await resMot.json();
         const sucs = await resSuc.json();
 
-        // Combo Formulario
         const selForm = document.getElementById('motoSucursal');
         selForm.innerHTML = '';
         sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
 
-        // Tabla
         const tbody = document.getElementById('tablaMotos');
         tbody.innerHTML = '';
 
@@ -597,17 +609,16 @@ async function editarPinRepartidor(id_usuario, pinActual) {
       }
     }
 
-   async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
-  // Si pasa a DISPONIBLE, enviamos detalle vacío
-  const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
+    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
+      const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
 
-  await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
-  });
-  cargarMotos();
-}
+      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
+      });
+      cargarMotos();
+    }
 
     async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
       const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
