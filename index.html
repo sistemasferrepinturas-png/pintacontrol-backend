@@ -3,222 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PintaControl - Panel Administrativo</title>
+  <title>PintaControl Express - Panel Administrador</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-  <!-- ENCABEZADO Y PESTAÑAS -->
-  <header class="bg-slate-900 text-white shadow-md">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between items-center gap-4">
-      <div>
-        <h1 class="text-2xl font-bold tracking-wide">PintaControl Express</h1>
-        <p class="text-xs text-slate-400">Sistema Multisucursal de Control de Flota</p>
-      </div>
-      <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-2"></span> Sistema en línea
-      </span>
+  <!-- ENCABEZADO -->
+  <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+    <div>
+      <h1 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
+        <span>🎨</span> PintaControl Express
+      </h1>
+      <p class="text-xs text-slate-400">Sistema Multisucursal de Control de Flota y Entregas</p>
     </div>
-
-    <div class="max-w-7xl mx-auto px-6 flex space-x-2 border-t border-slate-800">
-      <button onclick="cambiarPestana('monitoreo')" id="tab-monitoreo" class="py-3 px-4 text-sm font-semibold text-blue-400 border-b-2 border-blue-400">📊 Monitoreo en Vivo</button>
-      <button onclick="cambiarPestana('sucursales')" id="tab-sucursales" class="py-3 px-4 text-sm font-semibold text-slate-400 hover:text-slate-200">🏢 Sucursales</button>
-      <button onclick="cambiarPestana('repartidores')" id="tab-repartidores" class="py-3 px-4 text-sm font-semibold text-slate-400 hover:text-slate-200">👥 Repartidores</button>
-      <button onclick="cambiarPestana('motos')" id="tab-motos" class="py-3 px-4 text-sm font-semibold text-slate-400 hover:text-slate-200">🏍️ Motos & Mantenimiento</button>
+    <div class="flex items-center gap-4 mt-2 sm:mt-0">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema en línea
+      </span>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto p-6">
+  <!-- NAVEGACIÓN -->
+  <nav class="bg-slate-900 border-b border-slate-800 px-6">
+    <div class="flex gap-8 overflow-x-auto">
+      <button id="tab-monitoreo" onclick="cambiarPestana('monitoreo')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-blue-400 text-blue-400">
+        📊 Monitoreo en Vivo
+      </button>
+      <button id="tab-sucursales" onclick="cambiarPestana('sucursales')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+        🏢 Sucursales
+      </button>
+      <button id="tab-repartidores" onclick="cambiarPestana('repartidores')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+        👥 Repartidores
+      </button>
+      <button id="tab-motos" onclick="cambiarPestana('motos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+        🏍️ Motos & Mantenimiento
+      </button>
+    </div>
+  </nav>
 
-    <!-- SECCIÓN 1: MONITOREO EN VIVO -->
-    <section id="sec-monitoreo" class="block">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-4">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="p-6 max-w-7xl mx-auto">
+
+    <!-- PESTAÑA 1: MONITOREO -->
+    <section id="sec-monitoreo" class="space-y-6">
+      <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex flex-wrap gap-4 justify-between items-center">
+        <div class="flex flex-wrap gap-4 items-center">
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Desde:</label>
-            <input id="filtroFechaInicio" type="date" onchange="cargarMonitoreo()" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2 font-medium" />
+            <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA INICIO:</label>
+            <input type="date" id="filtroFechaInicio" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Hasta:</label>
-            <input id="filtroFechaFin" type="date" onchange="cargarMonitoreo()" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2 font-medium" />
+            <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA FIN:</label>
+            <input type="date" id="filtroFechaFin" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sucursal:</label>
-            <select id="filtroSucursal" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2.5 font-medium">
-              <option value="TODAS">🏢 Todas las Sucursales</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Estado:</label>
-            <select id="filtroEstado" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-50 border border-slate-300 text-sm rounded-lg p-2.5 font-medium">
-              <option value="TODOS">Todos los estados</option>
-              <option value="EN_PROCESO">⚠️ En Proceso</option>
-              <option value="FINALIZADO">✅ Finalizados</option>
-            </select>
-          </div>
+          <button onclick="cargarMonitoreo()" class="mt-5 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition">
+            🔍 Filtrar
+          </button>
         </div>
-        <div class="flex gap-2">
-          <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition">📊 Exportar a Excel</button>
-          <button onclick="cargarMonitoreo()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm px-3 py-2 rounded-lg transition">🔄 Actualizar</button>
+
+        <div class="flex gap-3">
+          <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+            📄 Exportar Excel
+          </button>
         </div>
       </div>
 
-      <!-- MÉTRICAS -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <p class="text-xs font-bold text-slate-400 uppercase">Viajes Filtrados</p>
-          <p id="totalViajes" class="text-3xl font-extrabold text-slate-800 mt-1">0</p>
+      <!-- TARJETAS DE MÉTRICAS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <p class="text-xs text-slate-400 font-semibold uppercase">TOTAL RECORRIDOS</p>
+          <p id="mTotalViajes" class="text-2xl font-bold text-white mt-1">0</p>
         </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <p class="text-xs font-bold text-slate-400 uppercase">En Recorrido Activo</p>
-          <p id="viajesEnProceso" class="text-3xl font-extrabold text-amber-500 mt-1">0</p>
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <p class="text-xs text-slate-400 font-semibold uppercase">EN PROCESO</p>
+          <p id="mEnProceso" class="text-2xl font-bold text-amber-400 mt-1">0</p>
         </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <p class="text-xs font-bold text-slate-400 uppercase">Finalizados</p>
-          <p id="viajesFinalizados" class="text-3xl font-extrabold text-emerald-600 mt-1">0</p>
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <p class="text-xs text-slate-400 font-semibold uppercase">FINALIZADOS</p>
+          <p id="mFinalizados" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
         </div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <p class="text-xs font-bold text-slate-400 uppercase">Km Recorridos</p>
-          <p id="totalKm" class="text-3xl font-extrabold text-blue-600 mt-1">0 km</p>
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+          <p class="text-xs text-slate-400 font-semibold uppercase">KM TOTALES RECORRIDOS</p>
+          <p id="mKmTotales" class="text-2xl font-bold text-blue-400 mt-1">0 km</p>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b flex justify-between items-center">
-          <h2 class="text-lg font-bold text-slate-800">Histórico de Recorridos</h2>
-          <span id="contadorRegistros" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md">0 registros</span>
+      <!-- TABLA DE MONITOREO -->
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+          <h2 class="font-bold text-lg text-white">Registro de Recorridos en Tiempo Real</h2>
+          <div class="flex gap-3">
+            <select id="filtroSucursal" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
+              <option value="TODAS">Todas las Sucursales</option>
+            </select>
+            <select id="filtroEstado" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
+              <option value="TODOS">Todos los Estados</option>
+              <option value="EN_PROCESO">En Proceso</option>
+              <option value="FINALIZADO">Finalizados</option>
+            </select>
+          </div>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table class="w-full text-left border-collapse text-sm">
             <thead>
-              <tr class="bg-slate-50 border-b text-xs font-bold text-slate-500 uppercase">
-                <th class="py-3 px-4">Fecha</th>
-                <th class="py-3 px-4"># Viaje</th>
-                <th class="py-3 px-4">Sucursal</th>
-                <th class="py-3 px-4">Repartidor</th>
-                <th class="py-3 px-4">Destino</th>
-                <th class="py-3 px-4">Pago Esperado</th>
-                <th class="py-3 px-4">Fondo Cambio</th>
-                <th class="py-3 px-4">Km Inicial / Final</th>
-                <th class="py-3 px-4">Distancia</th>
-                <th class="py-3 px-4">Estado</th>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3"># VIAJE</th>
+                <th class="p-3">REPARTIDOR</th>
+                <th class="p-3">SUCURSAL</th>
+                <th class="p-3">DESTINO</th>
+                <th class="p-3">PAGO</th>
+                <th class="p-3">FONDO</th>
+                <th class="p-3">KM INICIAL</th>
+                <th class="p-3">KM FINAL</th>
+                <th class="p-3">KM RECORRIDOS</th>
+                <th class="p-3">ESTADO</th>
+                <th class="p-3">INICIO</th>
               </tr>
             </thead>
-            <tbody id="tablaMonitoreo" class="divide-y text-sm"></tbody>
+            <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- SECCIÓN 2: SUCURSALES -->
-    <section id="sec-sucursales" class="hidden">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">➕ Registrar Nueva Sucursal</h3>
+    <!-- PESTAÑA 2: SUCURSALES -->
+    <section id="sec-sucursales" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nueva Sucursal</h2>
+        <div class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre:</label>
-            <input id="sucNombre" type="text" placeholder="Ej. Sucursal Tuxtla Poniente" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-3 text-sm" />
-            
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Dirección:</label>
-            <input id="sucDireccion" type="text" placeholder="Ej. Av. Central #456" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-3 text-sm" />
-            
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono:</label>
-            <input id="sucTelefono" type="text" placeholder="Ej. 9611234567" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-4 text-sm" />
-            
-            <button type="button" onclick="guardarSucursal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">Guardar Sucursal</button>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE:</label>
+            <input type="text" id="sucNombre" placeholder="Ej. Sucursal Laguitos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">DIRECCIÓN:</label>
+            <input type="text" id="sucDireccion" placeholder="Ej. Av. Central #123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
+            <input type="text" id="sucTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <button onclick="guardarSucursal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+            Guardar Sucursal
+          </button>
         </div>
+      </div>
 
-        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">🏢 Sucursales Activas</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead>
-                <tr class="bg-slate-50 border-b text-xs font-bold text-slate-500 uppercase">
-                  <th class="py-2.5 px-3">ID</th>
-                  <th class="py-2.5 px-3">Nombre</th>
-                  <th class="py-2.5 px-3">Dirección</th>
-                  <th class="py-2.5 px-3">Acción</th>
-                </tr>
-              </thead>
-              <tbody id="tablaSucursales" class="divide-y text-sm"></tbody>
-            </table>
-          </div>
+      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <h2 class="text-lg font-bold text-white mb-4">🏢 Sucursales Activas</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">ID</th>
+                <th class="p-3">NOMBRE</th>
+                <th class="p-3">DIRECCIÓN</th>
+                <th class="p-3">TELÉFONO</th>
+                <th class="p-3">ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody id="tablaSucursales" class="divide-y divide-slate-700/50"></tbody>
+          </table>
         </div>
       </div>
     </section>
 
-    <!-- SECCIÓN 3: REPARTIDORES -->
-    <section id="sec-repartidores" class="hidden">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">➕ Registrar Repartidor</h3>
+    <!-- PESTAÑA 3: REPARTIDORES -->
+    <section id="sec-repartidores" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Repartidor</h2>
+        <div class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo:</label>
-            <input id="repNombre" type="text" placeholder="Ej. Carlos Pérez" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-3 text-sm" />
-            
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sucursal Base:</label>
-            <select id="repSucursal" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-4 text-sm"></select>
-            
-            <button type="button" onclick="guardarRepartidor()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">Guardar Repartidor</button>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
+            <input type="text" id="repNombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+            <select id="repSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
+            <input type="text" id="repTelefono" placeholder="Ej. 9619876543" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <button onclick="guardarRepartidor()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+            Guardar Repartidor
+          </button>
         </div>
+      </div>
 
-        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">👥 Personal de Reparto</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead>
-                <tr class="bg-slate-50 border-b text-xs font-bold text-slate-500 uppercase">
-                  <th class="py-2.5 px-3">Repartidor</th>
-                  <th class="py-2.5 px-3">Sucursal Actual</th>
-                  <th class="py-2.5 px-3">Corregir Sucursal</th>
-                  <th class="py-2.5 px-3">Acción</th>
-                </tr>
-              </thead>
-              <tbody id="tablaRepartidores" class="divide-y text-sm"></tbody>
-            </table>
-          </div>
+      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <h2 class="text-lg font-bold text-white mb-4">👥 Lista de Repartidores</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">REPARTIDOR</th>
+                <th class="p-3">SUCURSAL ACTUAL</th>
+                <th class="p-3">CAMBIAR SUCURSAL</th>
+                <th class="p-3">ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
+          </table>
         </div>
       </div>
     </section>
 
-    <!-- SECCIÓN 4: MOTOS -->
-    <section id="sec-motos" class="hidden">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">➕ Registrar Moto</h3>
+    <!-- PESTAÑA 4: MOTOS & MANTENIMIENTO -->
+    <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
+        <div class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Placa / Num Económico:</label>
-            <input id="motoPlaca" type="text" placeholder="Ej. MOT-004" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-3 text-sm" />
-            
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Marca / Modelo:</label>
-            <input id="motoModelo" type="text" placeholder="Ej. Italika FT150" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-3 text-sm" />
-            
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sucursal Asignada:</label>
-            <select id="motoSucursal" class="w-full bg-slate-50 border rounded-lg p-2.5 mb-4 text-sm"></select>
-            
-            <button type="button" onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">Guardar Moto</button>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
+            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
+            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
+            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+            Guardar Moto
+          </button>
         </div>
+      </div>
 
-        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">🏍️ Flota de Vehículos</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead>
-                <tr class="bg-slate-50 border-b text-xs font-bold text-slate-500 uppercase">
-                  <th class="py-2.5 px-3">Moto</th>
-                  <th class="py-2.5 px-3">Sucursal</th>
-                  <th class="py-2.5 px-3">Estado Operativo</th>
-                  <th class="py-2.5 px-3">Detalle / Falla</th>
-                  <th class="py-2.5 px-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tablaMotos" class="divide-y text-sm"></tbody>
-            </table>
-          </div>
+      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">MOTO</th>
+                <th class="p-3">SUCURSAL</th>
+                <th class="p-3">KM ACTUAL</th>
+                <th class="p-3">ESTADO OPERATIVO</th>
+                <th class="p-3">DETALLE / FALLA</th>
+                <th class="p-3">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -226,10 +260,13 @@
   </main>
 
   <script>
-    const URL = 'https://pintacontrol-backend.onrender.com/api';
+    // URL PÚBLICA DE TU BACKEND EN RENDER
+    const API_URL = 'https://pintacontrol-backend.onrender.com/api';
+
     let datosMonitoreoGlobal = [];
     let listaSucursalesGlobal = [];
 
+    // Inicializar fechas hoy
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('filtroFechaInicio').value = hoy;
     document.getElementById('filtroFechaFin').value = hoy;
@@ -258,8 +295,8 @@
       try {
         const fInicio = document.getElementById('filtroFechaInicio').value;
         const fFin = document.getElementById('filtroFechaFin').value;
-        
-        let url = `${API}/admin/monitoreo`;
+
+        let url = `${API_URL}/admin/monitoreo`;
         if (fInicio && fFin) url += `?fecha_inicio=${fInicio}&fecha_fin=${fFin}`;
 
         const res = await fetch(url);
@@ -267,6 +304,18 @@
         await cargarComboSucursales();
         aplicarFiltrosMonitoreo();
       } catch (e) { console.error('Error monitoreo:', e); }
+    }
+
+    async function cargarComboSucursales() {
+      try {
+        const res = await fetch(`${API_URL}/sucursales`);
+        listaSucursalesGlobal = await res.json();
+        const sel = document.getElementById('filtroSucursal');
+        sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
+        listaSucursalesGlobal.forEach(s => {
+          sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+        });
+      } catch (e) {}
     }
 
     function aplicarFiltrosMonitoreo() {
@@ -284,66 +333,78 @@
     }
 
     function renderizarTablaMonitoreo(datos) {
-      const tabla = document.getElementById('tablaMonitoreo');
-      document.getElementById('contadorRegistros').textContent = `${datos.length} registros`;
-      tabla.innerHTML = '';
+      const tbody = document.getElementById('tablaMonitoreo');
+      tbody.innerHTML = '';
 
-      if (datos.length === 0) {
-        tabla.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-400">Sin registros para el rango de fechas/filtro seleccionado.</td></tr>`;
+      if (!datos || datos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
         return;
       }
 
-      datos.forEach(item => {
-        const esProceso = item.estado_viaje === 'EN_PROCESO';
-        const badge = esProceso
-          ? `<span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">⚠️ En Proceso</span>`
-          : `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">✅ Finalizado</span>`;
+      datos.forEach(v => {
+        const badgeClass = v.estado_viaje === 'EN_PROCESO' 
+          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
-        const fechaFmt = new Date(item.fecha_hora_inicio).toLocaleDateString();
-
-        tabla.innerHTML += `
-          <tr class="hover:bg-slate-50 transition">
-            <td class="py-3 px-4 text-xs font-semibold text-slate-500">${fechaFmt}</td>
-            <td class="py-3 px-4 font-bold text-slate-700">#${item.numero_viaje_del_dia}</td>
-            <td class="py-3 px-4 text-slate-600">${item.sucursal || 'Matriz'}</td>
-            <td class="py-3 px-4 font-semibold text-slate-800">${item.repartidor}</td>
-            <td class="py-3 px-4 text-slate-600">${item.direccion_destino}</td>
-            <td class="py-3 px-4">${item.forma_pago_esperada}</td>
-            <td class="py-3 px-4">$${parseFloat(item.fondo_cambio_recibido || 0).toFixed(2)}</td>
-            <td class="py-3 px-4 text-xs">${item.km_inicial} km / ${item.km_final ? item.km_final + ' km' : '---'}</td>
-            <td class="py-3 px-4 font-bold">${item.km_recorridos ? item.km_recorridos + ' km' : 'En curso'}</td>
-            <td class="py-3 px-4">${badge}</td>
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
+            <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
+            <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
+            <td class="p-3 text-slate-200">${v.direccion_destino}</td>
+            <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
+            <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
+            <td class="p-3 text-slate-400">${v.km_inicial} km</td>
+            <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
+            <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
+            <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
+            <td class="p-3 text-xs text-slate-400">${new Date(v.fecha_hora_inicio).toLocaleTimeString()}</td>
           </tr>
         `;
       });
     }
 
     function actualizarMetricas(datos) {
-      document.getElementById('totalViajes').textContent = datos.length;
-      document.getElementById('viajesEnProceso').textContent = datos.filter(d => d.estado_viaje === 'EN_PROCESO').length;
-      document.getElementById('viajesFinalizados').textContent = datos.filter(d => d.estado_viaje === 'FINALIZADO').length;
-      const kmSum = datos.reduce((acc, d) => acc + (d.km_recorridos ? parseInt(d.km_recorridos) : 0), 0);
-      document.getElementById('totalKm').textContent = `${kmSum} km`;
+      document.getElementById('mTotalViajes').innerText = datos.length;
+      document.getElementById('mEnProceso').innerText = datos.filter(d => d.estado_viaje === 'EN_PROCESO').length;
+      document.getElementById('mFinalizados').innerText = datos.filter(d => d.estado_viaje === 'FINALIZADO').length;
+
+      const kmTot = datos.reduce((sum, d) => sum + (parseInt(d.km_recorridos, 10) || 0), 0);
+      document.getElementById('mKmTotales').innerText = `${kmTot} km`;
+    }
+
+    function exportarExcel() {
+      if (datosMonitoreoGlobal.length === 0) return alert('No hay datos para exportar.');
+      const ws = XLSX.utils.json_to_sheet(datosMonitoreoGlobal);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Monitoreo");
+      XLSX.writeFile(wb, `PintaControl_Monitoreo_${hoy}.xlsx`);
     }
 
     // 2. SUCURSALES
     async function cargarSucursales() {
-      const res = await fetch(`${API}/sucursales`);
-      listaSucursalesGlobal = await res.json();
-      const tabla = document.getElementById('tablaSucursales');
-      tabla.innerHTML = '';
-      listaSucursalesGlobal.forEach(s => {
-        tabla.innerHTML += `
-          <tr>
-            <td class="py-2.5 px-3 font-bold text-slate-400">#${s.id_sucursal}</td>
-            <td class="py-2.5 px-3 font-semibold text-slate-800">${s.nombre}</td>
-            <td class="py-2.5 px-3 text-slate-600">${s.direccion || '---'}</td>
-            <td class="py-2.5 px-3">
-              <button onclick="eliminarSucursal(${s.id_sucursal}, '${s.nombre}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-bold transition">🗑️ Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
+      try {
+        const res = await fetch(`${API_URL}/sucursales`);
+        const lista = await res.json();
+        const tbody = document.getElementById('tablaSucursales');
+        tbody.innerHTML = '';
+
+        lista.forEach(s => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 text-slate-400">${s.id_sucursal}</td>
+              <td class="p-3 font-semibold text-white">${s.nombre}</td>
+              <td class="p-3 text-slate-300">${s.direccion || '-'}</td>
+              <td class="p-3 text-slate-300">${s.telefono || '-'}</td>
+              <td class="p-3">
+                <button onclick="eliminarSucursal(${s.id_sucursal})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) { alert('Error al cargar sucursales.'); }
     }
 
     async function guardarSucursal() {
@@ -351,231 +412,208 @@
       const direccion = document.getElementById('sucDireccion').value;
       const telefono = document.getElementById('sucTelefono').value;
 
-      if (!nombre.trim()) return alert('Por favor ingresa el nombre de la sucursal.');
+      if (!nombre) return alert('Ingresa el nombre de la sucursal.');
 
-      const res = await fetch(`${API}/sucursales`, {
+      const res = await fetch(`${API_URL}/sucursales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, direccion, telefono })
       });
 
       if (res.ok) {
-        alert('¡Sucursal guardada con éxito!');
+        alert('Sucursal registrada con éxito.');
         document.getElementById('sucNombre').value = '';
         document.getElementById('sucDireccion').value = '';
         document.getElementById('sucTelefono').value = '';
         cargarSucursales();
       } else {
-        alert('Error al guardar sucursal.');
+        alert('Error al guardar la sucursal.');
       }
     }
 
-    async function eliminarSucursal(id, nombre) {
-      if (confirm(`¿Estás seguro de eliminar la sucursal "${nombre}"?`)) {
-        await fetch(`${API}/sucursales/${id}`, { method: 'DELETE' });
-        cargarSucursales();
-      }
+    async function eliminarSucursal(id) {
+      if (!confirm('¿Eliminar esta sucursal?')) return;
+      await fetch(`${API_URL}/sucursales/${id}`, { method: 'DELETE' });
+      cargarSucursales();
     }
 
     // 3. REPARTIDORES
     async function cargarRepartidores() {
-      await cargarComboFormularios();
-      const res = await fetch(`${API}/repartidores`);
-      const repartidores = await res.json();
-      const tabla = document.getElementById('tablaRepartidores');
-      tabla.innerHTML = '';
+      try {
+        const [resRep, resSuc] = await Promise.all([
+          fetch(`${API_URL}/repartidores`),
+          fetch(`${API_URL}/sucursales`)
+        ]);
+        const reps = await resRep.json();
+        const sucs = await resSuc.json();
 
-      repartidores.forEach(r => {
-        let opciones = listaSucursalesGlobal.map(s => 
-          `<option value="${s.id_sucursal}" ${s.id_sucursal === r.id_sucursal ? 'selected' : ''}>${s.nombre}</option>`
-        ).join('');
+        // Combo Formulario
+        const selForm = document.getElementById('repSucursal');
+        selForm.innerHTML = '';
+        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
 
-        tabla.innerHTML += `
-          <tr>
-            <td class="py-2.5 px-3 font-semibold text-slate-800">${r.nombre}</td>
-            <td class="py-2.5 px-3 text-slate-600">${r.sucursal || 'Sin asignar'}</td>
-            <td class="py-2.5 px-3">
-              <select onchange="corregirSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-50 border text-xs rounded p-1">
-                ${opciones}
-              </select>
-            </td>
-            <td class="py-2.5 px-3">
-              <button onclick="eliminarRepartidor(${r.id_usuario}, '${r.nombre}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-bold transition">🗑️ Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
+        // Tabla
+        const tbody = document.getElementById('tablaRepartidores');
+        tbody.innerHTML = '';
+        reps.forEach(r => {
+          let opcionesSucs = sucs.map(s => 
+            `<option value="${s.id_sucursal}" ${s.id_sucursal === r.id_sucursal ? 'selected' : ''}>${s.nombre}</option>`
+          ).join('');
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-semibold text-white">${r.nombre}</td>
+              <td class="p-3 text-slate-300">${r.sucursal || 'Sin Asignar'}</td>
+              <td class="p-3">
+                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
+                  ${opcionesSucs}
+                </select>
+              </td>
+              <td class="p-3">
+                <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {}
     }
 
     async function guardarRepartidor() {
       const nombre = document.getElementById('repNombre').value;
       const id_sucursal = document.getElementById('repSucursal').value;
+      const telefono = document.getElementById('repTelefono').value;
 
-      if (!nombre.trim()) return alert('Por favor ingresa el nombre del repartidor.');
+      if (!nombre) return alert('Ingresa el nombre del repartidor.');
 
-      const res = await fetch(`${API}/repartidores`, {
+      const res = await fetch(`${API_URL}/repartidores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, id_sucursal })
+        body: JSON.stringify({ nombre, id_sucursal, telefono })
       });
 
       if (res.ok) {
-        alert('¡Repartidor registrado con éxito!');
+        alert('Repartidor registrado correctamente.');
         document.getElementById('repNombre').value = '';
+        document.getElementById('repTelefono').value = '';
         cargarRepartidores();
-      } else {
-        alert('Error al guardar repartidor.');
       }
     }
 
-    async function corregirSucursalRepartidor(id_usuario, id_sucursal) {
-      await fetch(`${API}/repartidores/${id_usuario}/sucursal`, {
+    async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
+      await fetch(`${API_URL}/repartidores/${id_usuario}/sucursal`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_sucursal })
       });
-      alert('¡Sucursal corregida con éxito!');
       cargarRepartidores();
     }
 
-    async function eliminarRepartidor(id, nombre) {
-      if (confirm(`¿Estás seguro de eliminar al repartidor "${nombre}"?`)) {
-        await fetch(`${API}/repartidores/${id}`, { method: 'DELETE' });
-        cargarRepartidores();
-      }
+    async function eliminarRepartidor(id) {
+      if (!confirm('¿Eliminar repartidor?')) return;
+      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
+      cargarRepartidores();
     }
 
     // 4. MOTOS
     async function cargarMotos() {
-      await cargarComboFormularios();
-      const res = await fetch(`${API}/motos`);
-      const motos = await res.json();
-      const tabla = document.getElementById('tablaMotos');
-      tabla.innerHTML = '';
+      try {
+        const [resMot, resSuc] = await Promise.all([
+          fetch(`${API_URL}/motos`),
+          fetch(`${API_URL}/sucursales`)
+        ]);
+        const motos = await resMot.json();
+        const sucs = await resSuc.json();
 
-      motos.forEach(m => {
-        tabla.innerHTML += `
-          <tr>
-            <td class="py-2.5 px-3 font-bold text-slate-800">${m.placa} <span class="text-xs text-slate-400 block">${m.marca_modelo}</span></td>
-            <td class="py-2.5 px-3 text-slate-600">${m.sucursal || 'Matriz'}</td>
-            <td class="py-2.5 px-3 font-bold">
-              <select onchange="actualizarEstadoMoto(${m.id_vehiculo}, this.value, '${m.detalles_mecanicos || ''}')" class="bg-slate-50 border text-xs rounded p-1">
-                <option value="DISPONIBLE" ${m.estado === 'DISPONIBLE' ? 'selected' : ''}>🟢 DISPONIBLE</option>
-                <option value="CON DETALLE" ${m.estado === 'CON DETALLE' ? 'selected' : ''}>🟡 CON DETALLE</option>
-                <option value="EN TALLER" ${m.estado === 'EN TALLER' ? 'selected' : ''}>🔴 EN TALLER</option>
-              </select>
-            </td>
-            <td class="py-2.5 px-3 text-xs text-slate-600">${m.detalles_mecanicos || 'Ninguno'}</td>
-            <td class="py-2.5 px-3 flex gap-1">
-              <button onclick="editarDetalleMecanico(${m.id_vehiculo}, '${m.detalles_mecanicos || ''}')" class="bg-slate-100 hover:bg-slate-200 text-xs px-2 py-1 rounded border">🛠️ Editar</button>
-              <button onclick="eliminarMoto(${m.id_vehiculo}, '${m.placa}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2 py-1 rounded font-bold transition">🗑️ Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
+        // Combo Formulario
+        const selForm = document.getElementById('motoSucursal');
+        selForm.innerHTML = '';
+        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+
+        // Tabla
+        const tbody = document.getElementById('tablaMotos');
+        tbody.innerHTML = '';
+
+        motos.forEach(m => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-semibold text-white">${m.placa} <span class="block text-xs font-normal text-slate-400">${m.marca_modelo}</span></td>
+              <td class="p-3 text-slate-300">${m.sucursal || 'Sin Asignar'}</td>
+              <td class="p-3 font-bold text-blue-400">${m.kilometraje_actual} km</td>
+              <td class="p-3">
+                <select onchange="actualizarMantenimientoMoto(${m.id_vehiculo}, this.value, '${m.detalles_mecanicos || ''}')" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
+                  <option value="DISPONIBLE" ${m.estado === 'DISPONIBLE' ? 'selected' : ''}>🟢 DISPONIBLE</option>
+                  <option value="CON_DETALLE" ${m.estado === 'CON_DETALLE' ? 'selected' : ''}>🟡 CON DETALLE MECÁNICO</option>
+                  <option value="EN_TALLER" ${m.estado === 'EN_TALLER' ? 'selected' : ''}>🔴 EN TALLER</option>
+                </select>
+              </td>
+              <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
+              <td class="p-3 flex gap-2">
+                <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded text-xs">
+                  Editar Detalle
+                </button>
+                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded text-xs">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {}
     }
 
     async function guardarMoto() {
       const placa = document.getElementById('motoPlaca').value;
       const marca_modelo = document.getElementById('motoModelo').value;
       const id_sucursal = document.getElementById('motoSucursal').value;
+      const kilometraje_actual = document.getElementById('motoKm').value;
 
-      if (!placa.trim()) return alert('Por favor ingresa la placa o número económico de la moto.');
+      if (!placa) return alert('Ingresa la placa de la moto.');
 
-      const res = await fetch(`${API}/motos`, {
+      const res = await fetch(`${API_URL}/motos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placa, marca_modelo, id_sucursal })
+        body: JSON.stringify({ placa, marca_modelo, id_sucursal, kilometraje_actual: parseInt(kilometraje_actual || 0, 10) })
       });
 
       if (res.ok) {
-        alert('¡Moto registrada con éxito!');
+        alert('Moto registrada con éxito.');
         document.getElementById('motoPlaca').value = '';
         document.getElementById('motoModelo').value = '';
+        document.getElementById('motoKm').value = '';
         cargarMotos();
-      } else {
-        alert('Error al registrar moto.');
       }
     }
 
-    async function actualizarEstadoMoto(id_vehiculo, estado, detalles) {
-      await fetch(`${API}/motos/${id_vehiculo}/mantenimiento`, {
+    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
+      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, detalles_mecanicos: detalles })
+        body: JSON.stringify({ estado, detalles_mecanicos })
       });
       cargarMotos();
     }
 
-    async function editarDetalleMecanico(id_vehiculo, detalleActual) {
-      const nuevoDetalle = prompt('Escribe el detalle mecánico o falla de la moto:', detalleActual);
+    async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
+      const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
       if (nuevoDetalle !== null) {
-        const nuevoEstado = nuevoDetalle.trim() === '' ? 'DISPONIBLE' : 'CON DETALLE';
-        await fetch(`${API}/motos/${id_vehiculo}/mantenimiento`, {
+        await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: nuevoEstado, detalles_mecanicos: nuevoDetalle })
+          body: JSON.stringify({ estado: estadoActual, detalles_mecanicos: nuevoDetalle })
         });
         cargarMotos();
       }
     }
 
-    async function eliminarMoto(id, placa) {
-      if (confirm(`¿Estás seguro de eliminar la moto con placa "${placa}"?`)) {
-        await fetch(`${API}/motos/${id}`, { method: 'DELETE' });
-        cargarMotos();
-      }
+    async function eliminarMoto(id) {
+      if (!confirm('¿Eliminar esta moto?')) return;
+      await fetch(`${API_URL}/motos/${id}`, { method: 'DELETE' });
+      cargarMotos();
     }
 
-    // UTILERÍAS SUCURSAL Y EXCEL
-    async function cargarComboSucursales() {
-      const res = await fetch(`${API}/sucursales`);
-      listaSucursalesGlobal = await res.json();
-      const sel = document.getElementById('filtroSucursal');
-      sel.innerHTML = `<option value="TODAS">🏢 Todas las Sucursales</option>`;
-      listaSucursalesGlobal.forEach(s => {
-        sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
-      });
-    }
-
-    async function cargarComboFormularios() {
-      if (listaSucursalesGlobal.length === 0) {
-        const res = await fetch(`${API}/sucursales`);
-        listaSucursalesGlobal = await res.json();
-      }
-      ['repSucursal', 'motoSucursal'].forEach(id => {
-        const combo = document.getElementById(id);
-        if (combo) {
-          combo.innerHTML = '';
-          listaSucursalesGlobal.forEach(s => {
-            combo.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`;
-          });
-        }
-      });
-    }
-
-    function exportarExcel() {
-      if (datosMonitoreoGlobal.length === 0) return alert('No hay datos para exportar.');
-      const Mapeado = datosMonitoreoGlobal.map(i => ({
-        "Fecha": new Date(i.fecha_hora_inicio).toLocaleDateString(),
-        "Viaje": `#${i.numero_viaje_del_dia}`,
-        "Sucursal": i.sucursal || 'Matriz',
-        "Repartidor": i.repartidor,
-        "Destino": i.direccion_destino,
-        "Forma Pago": i.forma_pago_esperada,
-        "Fondo Cambio": parseFloat(i.fondo_cambio_recibido || 0),
-        "Km Inicial": i.km_inicial,
-        "Km Final": i.km_final || '---',
-        "Distancia": i.km_recorridos || 0,
-        "Estado": i.estado_viaje
-      }));
-
-      const hoja = XLSX.utils.json_to_sheet(Mapeado);
-      const libro = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(libro, hoja, "Recorridos");
-      XLSX.writeFile(libro, `PintaControl_Reporte.xlsx`);
-    }
-
+    // CARGA INICIAL
     cargarMonitoreo();
   </script>
 </body>
