@@ -128,9 +128,9 @@ router.get('/motos', async (req, res) => {
   try {
     const { id_sucursal } = req.query;
     let query = `
-      SELECT v.*, s.nombre AS sucursal 
-      FROM vehiculos v 
-      LEFT JOIN sucursales s ON v.id_sucursal = s.id_sucursal 
+      SELECT v.id_vehiculo, v.placa, v.marca_modelo, v.kilometraje_actual, v.estado, v.detalles_mecanicos, v.id_sucursal, s.nombre AS sucursal
+      FROM vehiculos v
+      LEFT JOIN sucursales s ON v.id_sucursal = s.id_sucursal
       WHERE v.activo = TRUE
     `;
     const params = [];
@@ -139,9 +139,9 @@ router.get('/motos', async (req, res) => {
       query += " AND v.id_sucursal = $1";
       params.push(id_sucursal);
     }
-    query += " ORDER BY v.placa ASC";
+    query += " ORDER BY v.id_vehiculo ASC";
 
-    const resu = await pool.query(query, params);
+    const resu = await pool.query(query);
     res.json(resu.rows);
   } catch (e) {
     res.status(500).json({ error: 'Error al consultar motos.' });
