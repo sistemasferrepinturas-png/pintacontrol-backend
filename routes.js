@@ -237,6 +237,25 @@ router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
   }
 });
 
+// Actualizar datos de la moto (Placa y Marca/Modelo)
+router.put('/motos/:id_vehiculo/datos', async (req, res) => {
+  try {
+    const { id_vehiculo } = req.params;
+    const { placa, marca_modelo } = req.body;
+
+    if (!placa || !marca_modelo) {
+      return res.status(400).json({ error: 'La placa y la marca/modelo son obligatorias.' });
+    }
+
+    const query = "UPDATE vehiculos SET placa = $1, marca_modelo = $2 WHERE id_vehiculo = $3 RETURNING *";
+    const actual = await pool.query(query, [placa, marca_modelo, id_vehiculo]);
+    res.json({ mensaje: 'Datos de la moto actualizados correctamente.', moto: actual.rows[0] });
+  } catch (e) {
+    console.error("Error al actualizar datos de moto:", e);
+    res.status(500).json({ error: 'Error al actualizar datos de la moto.' });
+  }
+});
+
 /* ==========================================================================
    4. MONITOREO Y OPERACIONES MÓVILES
    ========================================================================== */
