@@ -124,6 +124,7 @@
                 <th class="p-3">KM RECORRIDOS</th>
                 <th class="p-3">ESTADO</th>
                 <th class="p-3">INICIO</th>
+                <th class="p-3">LLEGADA</th>
               </tr>
             </thead>
             <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
@@ -342,37 +343,41 @@
       actualizarMetricas(filtrados);
     }
 
-    function renderizarTablaMonitoreo(datos) {
-      const tbody = document.getElementById('tablaMonitoreo');
-      tbody.innerHTML = '';
+function renderizarTablaMonitoreo(datos) {
+  const tbody = document.getElementById('tablaMonitoreo');
+  tbody.innerHTML = '';
 
-      if (!datos || datos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
-        return;
-      }
+  if (!datos || datos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
+    return;
+  }
 
-      datos.forEach(v => {
-        const badgeClass = v.estado_viaje === 'EN_PROCESO' 
-          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  datos.forEach(v => {
+    const badgeClass = v.estado_viaje === 'EN_PROCESO' 
+      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/40 transition">
-            <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
-            <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
-            <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
-            <td class="p-3 text-slate-200">${v.direccion_destino}</td>
-            <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
-            <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
-            <td class="p-3 text-slate-400">${v.km_inicial} km</td>
-            <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
-            <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
-            <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
-            <td class="p-3 text-xs text-slate-400">${new Date(v.fecha_hora_inicio).toLocaleTimeString()}</td>
-          </tr>
-        `;
-      });
-    }
+    const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
+    const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'En camino...';
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-slate-800/40 transition">
+        <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
+        <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
+        <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
+        <td class="p-3 text-slate-200">${v.direccion_destino}</td>
+        <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
+        <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
+        <td class="p-3 text-slate-400">${v.km_inicial} km</td>
+        <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
+        <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
+        <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
+        <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
+        <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
+      </tr>
+    `;
+  });
+}
 
     function actualizarMetricas(datos) {
       document.getElementById('mTotalViajes').innerText = datos.length;
