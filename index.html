@@ -582,15 +582,18 @@ async function cargarMotos() {
             </select>
           </td>
           <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
-          <td class="p-3 flex gap-2">
-            <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
-              ✏️ Editar Km
-            </button>
-            <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">
-              🛠️ Detalle
-            </button>
-            <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">
-              Eliminar
+        <td class="p-3 flex gap-2">
+          <button onclick="editarDatosMoto(${m.id_vehiculo}, '${m.placa}', '${m.marca_modelo}')" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded text-xs hover:bg-indigo-500 hover:text-white transition">
+            ✏️ Moto
+          </button>
+          <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
+            ✏️ Km
+          </button>
+          <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">
+          🛠️ Detalle
+          </button>
+          <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">
+            Eliminar
             </button>
           </td>
         </tr>
@@ -617,6 +620,27 @@ async function editarKmMoto(id_vehiculo, kmActual) {
   }
 }
 
+async function editarDatosMoto(id_vehiculo, placaActual, modeloActual) {
+  const nuevaPlaca = prompt('Ingresa la nueva Placa / Num. Económico:', placaActual);
+  if (nuevaPlaca === null || nuevaPlaca.trim() === '') return;
+
+  const nuevoModelo = prompt('Ingresa la nueva Marca / Modelo:', modeloActual);
+  if (nuevoModelo === null || nuevoModelo.trim() === '') return;
+
+  const res = await fetch(`${API_URL}/motos/${id_vehiculo}/datos`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placa: nuevaPlaca.trim(), marca_modelo: nuevoModelo.trim() })
+  });
+
+  if (res.ok) {
+    alert('Datos de la moto actualizados correctamente.');
+    cargarMotos();
+  } else {
+    alert('Error al actualizar los datos de la moto.');
+  }
+}
+    
 async function guardarMoto() {
   const placa = document.getElementById('motoPlaca').value;
   const marca_modelo = document.getElementById('motoModelo').value;
