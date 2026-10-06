@@ -257,10 +257,13 @@ router.put('/motos/:id_vehiculo/datos', async (req, res) => {
 });
 
 /* ==========================================================================
-   4. MONITOREO Y OPERACIONES MÓVILES
+   MONITOREO EN VIVO (Con lectura de notas)
    ========================================================================== */
 router.get('/admin/monitoreo', async (req, res) => {
   try {
+    // Crear la columna 'notas' automáticamente si aún no existe en la base de datos
+    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS notas TEXT;");
+
     const { fecha_inicio, fecha_fin } = req.query;
     let queryAdmin = `
       SELECT 
@@ -279,7 +282,8 @@ router.get('/admin/monitoreo', async (req, res) => {
         END AS km_recorridos,
         vr.estado_viaje,
         vr.fecha_hora_inicio,
-        vr.fecha_hora_fin
+        vr.fecha_hora_fin,
+        vr.notas
       FROM viajes_recorridos vr
       JOIN usuarios u ON vr.id_usuario = u.id_usuario
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
@@ -350,6 +354,7 @@ router.get('/repartidor/:id_usuario/estado', async (req, res) => {
     res.status(500).json({ error: 'Error al consultar estado del repartidor.' });
   }
 });
+
 
 router.post('/viajes/inicio', async (req, res) => {
   const client = await pool.connect();
