@@ -80,22 +80,27 @@ router.get('/repartidores', async (req, res) => {
         u.pin, 
         u.id_sucursal, 
         s.nombre AS sucursal,
-        CASE 
-          WHEN COUNT(vr.id_viaje) > 0 THEN 'EN_RECORRIDO'
-          ELSE 'LIBRE'
-        END AS estatus
+        EXISTS (
+          SELECT 1 FROM viajes_recorridos vr 
+          WHERE vr.id_usuario = u.id_usuario AND vr.estado_viaje = 'EN_PROCESO'
+        ) AS en_recorrido
       FROM usuarios u
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
-      LEFT JOIN viajes_recorridos vr ON u.id_usuario = vr.id_usuario AND vr.estado_viaje = 'EN_PROCESO'
       WHERE u.rol = 'REPARTIDOR' AND u.activo = TRUE
-      GROUP BY u.id_usuario, u.nombre, u.email, u.telefono, u.pin, u.id_sucursal, s.nombre
       ORDER BY u.nombre ASC;
     `;
     const resu = await pool.query(query);
-    res.json(resu.rows);
+    
+    // Mapear el estatus según el resultado booleano en_recorrido
+    const lista = resu.rows.map(r => ({
+      ...r,
+      estatus: r.en_recorrido ? 'EN_RECORRIDO' : 'LIBRE'
+    }));
+
+    res.json(lista);
   } catch (e) {
     console.error("Error al consultar repartidores:", e);
-    res.status(500).json({ error: 'Error al consultar repartidores.' });
+    res.status(500).json({ error: 'Error al consultar repartidores: ' + e.message });
   }
 });
 
