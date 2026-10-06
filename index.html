@@ -732,15 +732,17 @@ async function eliminarMoto(id) {
   cargarMotos();
 }
 
-// CARGA INICIAL
+// CARGA INICIAL DE DATOS
+cargarMonitoreo();
+cargarRepartidores();
+cargarSucursales();
+cargarMotos();
+
+// Actualización periódica en vivo cada 5 segundos
+setInterval(() => {
   cargarMonitoreo();
   cargarRepartidores();
-
-  // Actualización periódica en vivo cada 5 segundos
-  setInterval(() => {
-    cargarMonitoreo();
-    cargarRepartidores(); // Mantiene el estatus LIBRE / EN RECORRIDO actualizado en vivo
-  }, 5000);
+}, 5000);
     
   </script>
 </body>
