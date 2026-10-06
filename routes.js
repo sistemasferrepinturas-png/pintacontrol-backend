@@ -68,6 +68,7 @@ router.put('/sucursales/:id/estado-uso', async (req, res) => {
 /* ==========================================================================
    2. REPARTIDORES (Con PIN de 4 dígitos)
    ========================================================================== */
+
 router.get('/repartidores', async (req, res) => {
   try {
     let query = `
@@ -87,8 +88,8 @@ router.get('/repartidores', async (req, res) => {
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
       LEFT JOIN viajes_recorridos vr ON u.id_usuario = vr.id_usuario AND vr.estado_viaje = 'EN_PROCESO'
       WHERE u.rol = 'REPARTIDOR' AND u.activo = TRUE
-      GROUP BY u.id_usuario, s.nombre
-      ORDER BY u.nombre ASC
+      GROUP BY u.id_usuario, u.nombre, u.email, u.telefono, u.pin, u.id_sucursal, s.nombre
+      ORDER BY u.nombre ASC;
     `;
     const resu = await pool.query(query);
     res.json(resu.rows);
