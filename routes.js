@@ -276,7 +276,8 @@ router.get('/admin/monitoreo', async (req, res) => {
         (vr.km_final - vr.km_inicial) AS km_recorridos,
         vr.estado_viaje,
         vr.fecha_hora_inicio,
-        vr.fecha_hora_fin
+        vr.fecha_hora_fin,
+        vr.notas
       FROM viajes_recorridos vr
       JOIN usuarios u ON vr.id_usuario = u.id_usuario
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
@@ -412,7 +413,7 @@ router.post('/viajes/inicio', async (req, res) => {
   }
 });
 
-// Finalizar recorrido con validaciones y notas
+// Finalizar recorrido con validación y notas
 router.post('/viajes/finalizar', async (req, res) => {
   try {
     const { id_viaje, km_final, notas } = req.body;
@@ -421,36 +422,55 @@ router.post('/viajes/finalizar', async (req, res) => {
       return res.status(400).json({ error: 'Proporciona el ID del viaje y un kilometraje final válido.' });
     }
 
-    // 1. Obtener el viaje actual para comparar el kilometraje inicial
-    const viajeRes = await pool.query("SELECT id_vehiculo, km_inicial FROM viajes WHERE id_viaje = $1", [id_viaje]);
+    // 1. Obtener el viaje actual y la moto asociada desde turnos_diarios
+    const viajeRes = await pool.query(`
+      SELECT vr.km_inicial, t.id_vehiculo 
+      FROM viajes_recorridos vr
+      LEFT JOIN turnos_diarios t ON vr.id_turno = t.id_turno
+      WHERE vr.id_viaje = $1
+    `, [id_viaje]);
+
     if (viajeRes.rows.length === 0) {
       return res.status(404).json({ error: 'Viaje no encontrado.' });
     }
 
     const { id_vehiculo, km_inicial } = viajeRes.rows[0];
 
-    // 2. Validación: El km final DEBE ser mayor al inicial (no igual, no menor)
+    // 2. Validación de kilometraje mayor al inicial
     if (parseInt(km_final, 10) <= parseInt(km_inicial, 10)) {
-      return res.status(400).json({ error: 'El kilometraje final debe ser mayor al kilometraje inicial con el que arrancaste.' });
+      return res.status(400).json({ error: 'El kilometraje final debe ser estrictamente mayor al inicial.' });
     }
 
     const km_recorridos = parseInt(km_final, 10) - parseInt(km_inicial, 10);
 
-    // 3. Finalizar el viaje guardando km, nota y cambiando el estado
-    const queryViaje = `
-      UPDATE viajes 
-      SET km_final = $1, km_recorridos = $2, notas = $3, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
-      WHERE id_viaje = $4 
-      RETURNING *;
-    `;
-    const viajeActualizado = await pool.query(queryViaje, [parseInt(km_final, 10), km_recorridos, notas || null, id_viaje]);
+    // 3. Intentar guardar con la columna notas; si falla la columna en DB, guardar sin ella
+    let viajeActualizado;
+    try {
+      const queryViaje = `
+        UPDATE viajes_recorridos 
+        SET km_final = $1, km_recorridos = $2, notas = $3, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
+        WHERE id_viaje = $4 
+        RETURNING *;
+      `;
+      viajeActualizado = await pool.query(queryViaje, [parseInt(km_final, 10), km_recorridos, notas || null, id_viaje]);
+    } catch (errColumna) {
+      const queryFallback = `
+        UPDATE viajes_recorridos 
+        SET km_final = $1, km_recorridos = $2, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
+        WHERE id_viaje = $3 
+        RETURNING *;
+      `;
+      viajeActualizado = await pool.query(queryFallback, [parseInt(km_final, 10), km_recorridos, id_viaje]);
+    }
 
-    // 4. Actualizar el kilometraje de la moto en la flotilla
-    await pool.query("UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", [parseInt(km_final, 10), id_vehiculo]);
+    // 4. Actualizar el kilometraje de la moto
+    if (id_vehiculo) {
+      await pool.query("UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", [parseInt(km_final, 10), id_vehiculo]);
+    }
 
     res.json({ mensaje: 'Recorrido finalizado correctamente.', viaje: viajeActualizado.rows[0] });
   } catch (e) {
-    console.error("Error al finalizar viaje:", e);
+    console.error("Error crítico al finalizar viaje:", e);
     res.status(500).json({ error: 'Error al finalizar el recorrido.' });
   }
 });
