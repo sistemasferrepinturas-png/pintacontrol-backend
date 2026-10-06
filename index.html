@@ -399,31 +399,54 @@ function renderizarTablaMonitoreo(datos) {
       XLSX.writeFile(wb, `PintaControl_Monitoreo_${hoy}.xlsx`);
     }
 
-    // 2. SUCURSALES
-    async function cargarSucursales() {
-      try {
-        const res = await fetch(`${API_URL}/sucursales`);
-        const lista = await res.json();
-        const tbody = document.getElementById('tablaSucursales');
-        tbody.innerHTML = '';
 
-        lista.forEach(s => {
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
-              <td class="p-3 text-slate-400">${s.id_sucursal}</td>
-              <td class="p-3 font-semibold text-white">${s.nombre}</td>
-              <td class="p-3 text-slate-300">${s.direccion || '-'}</td>
-              <td class="p-3 text-slate-300">${s.telefono || '-'}</td>
-              <td class="p-3">
-                <button onclick="eliminarSucursal(${s.id_sucursal})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      } catch (e) { alert('Error al cargar sucursales.'); }
+let listaSucursalesGlobal = [];
+
+function generarOpcionesSucursales(idSucursalActual) {
+  if (!listaSucursalesGlobal || listaSucursalesGlobal.length === 0) {
+    return `<option value="">Sin sucursales</option>`;
+  }
+  return listaSucursalesGlobal.map(s => `
+    <option value="${s.id_sucursal}" ${s.id_sucursal == idSucursalActual ? 'selected' : ''}>
+      ${s.nombre}
+    </option>
+  `).join('');
+}    
+  
+// 2. SUCURSALES
+async function cargarSucursales() {
+  try {
+    const res = await fetch(`${API_URL}/sucursales`);
+    const lista = await res.json();
+    listaSucursalesGlobal = lista; // <-- ESTA LÍNEA ES LA ÚNICA NUEVA
+
+    const tbody = document.getElementById('tablaSucursales');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    lista.forEach(s => {
+      tbody.innerHTML += `
+        <tr class="hover:bg-slate-800/40">
+          <td class="p-3 text-slate-400">${s.id_sucursal}</td>
+          <td class="p-3 font-semibold text-white">${s.nombre}</td>
+          <td class="p-3 text-slate-300">${s.direccion || '-'}</td>
+          <td class="p-3 text-slate-300">${s.telefono || '-'}</td>
+          <td class="p-3">
+            <button onclick="eliminarSucursal(${s.id_sucursal})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    // Actualizar el selector del formulario de registro de repartidores si existe
+    const selectRep = document.getElementById('repSucursal');
+    if (selectRep) {
+      selectRep.innerHTML = lista.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
     }
+  } catch (e) { alert('Error al cargar sucursales.'); }
+}
 
     async function guardarSucursal() {
       const nombre = document.getElementById('sucNombre').value;
@@ -455,6 +478,7 @@ function renderizarTablaMonitoreo(datos) {
       cargarSucursales();
     }
 
+    
     // 3. CARGAR REPARTIDORES
 
 async function cargarRepartidores() {
