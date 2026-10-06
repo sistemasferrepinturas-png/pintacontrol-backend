@@ -231,4 +231,537 @@
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
-            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class
+            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
+            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
+            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+            Guardar Moto
+          </button>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">MOTO</th>
+                <th class="p-3">SUCURSAL</th>
+                <th class="p-3">KM ACTUAL</th>
+                <th class="p-3">ESTADO OPERATIVO</th>
+                <th class="p-3">DETALLE / FALLA</th>
+                <th class="p-3">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // URL PÚBLICA EN RENDER
+    const API_URL = 'https://pintacontrol-backend.onrender.com/api';
+
+    let datosMonitoreoGlobal = [];
+    let listaSucursalesGlobal = [];
+
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('filtroFechaInicio').value = hoy;
+    document.getElementById('filtroFechaFin').value = hoy;
+
+    function cambiarPestana(pestana) {
+      ['monitoreo', 'sucursales', 'repartidores', 'motos'].forEach(p => {
+        document.getElementById(`sec-${p}`).classList.add('hidden');
+        const tabBtn = document.getElementById(`tab-${p}`);
+        tabBtn.classList.remove('text-blue-400', 'border-b-2', 'border-blue-400');
+        tabBtn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`sec-${pestana}`).classList.remove('hidden');
+      const activeTab = document.getElementById(`tab-${pestana}`);
+      activeTab.classList.remove('text-slate-400');
+      activeTab.classList.add('text-blue-400', 'border-b-2', 'border-blue-400');
+
+      if (pestana === 'monitoreo') cargarMonitoreo();
+      if (pestana === 'sucursales') cargarSucursales();
+      if (pestana === 'repartidores') cargarRepartidores();
+      if (pestana === 'motos') cargarMotos();
+    }
+
+    // AUXILIAR: Generar opciones del selector de sucursales
+    function generarOpcionesSucursales(idSucursalActual) {
+      if (!listaSucursalesGlobal || listaSucursalesGlobal.length === 0) {
+        return `<option value="">Sin sucursales</option>`;
+      }
+      return listaSucursalesGlobal.map(s => `
+        <option value="${s.id_sucursal}" ${s.id_sucursal == idSucursalActual ? 'selected' : ''}>
+          ${s.nombre}
+        </option>
+      `).join('');
+    }
+
+    // 1. MONITOREO
+    async function cargarMonitoreo() {
+      try {
+        const fInicio = document.getElementById('filtroFechaInicio').value;
+        const fFin = document.getElementById('filtroFechaFin').value;
+
+        let url = `${API_URL}/admin/monitoreo`;
+        if (fInicio && fFin) url += `?fecha_inicio=${fInicio}&fecha_fin=${fFin}`;
+
+        const res = await fetch(url);
+        datosMonitoreoGlobal = await res.json();
+        await cargarComboSucursales();
+        aplicarFiltrosMonitoreo();
+      } catch (e) { console.error('Error monitoreo:', e); }
+    }
+
+    async function cargarComboSucursales() {
+      try {
+        const res = await fetch(`${API_URL}/sucursales`);
+        listaSucursalesGlobal = await res.json();
+        const sel = document.getElementById('filtroSucursal');
+        sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
+        listaSucursalesGlobal.forEach(s => {
+          sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+        });
+      } catch (e) {}
+    }
+
+    function aplicarFiltrosMonitoreo() {
+      const sucSel = document.getElementById('filtroSucursal').value;
+      const estSel = document.getElementById('filtroEstado').value;
+
+      let filtrados = datosMonitoreoGlobal.filter(item => {
+        const cumSuc = (sucSel === 'TODAS') || (item.sucursal === sucSel);
+        const cumEst = (estSel === 'TODOS') || (item.estado_viaje === estSel);
+        return cumSuc && cumEst;
+      });
+
+      renderizarTablaMonitoreo(filtrados);
+      actualizarMetricas(filtrados);
+    }
+
+    function renderizarTablaMonitoreo(datos) {
+      const tbody = document.getElementById('tablaMonitoreo');
+      tbody.innerHTML = '';
+
+      if (!datos || datos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
+        return;
+      }
+
+      datos.forEach(v => {
+        const badgeClass = v.estado_viaje === 'EN_PROCESO' 
+          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
+        const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
+        const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'En camino...';
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
+            <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
+            <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
+            <td class="p-3 text-slate-200">${v.direccion_destino}</td>
+            <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
+            <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
+            <td class="p-3 text-slate-400">${v.km_inicial} km</td>
+            <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
+            <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
+            <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
+            <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
+            <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
+            <td class="p-3">${notaTexto}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function actualizarMetricas(datos) {
+      document.getElementById('mTotalViajes').innerText = datos.length;
+      document.getElementById('mEnProceso').innerText = datos.filter(d => d.estado_viaje === 'EN_PROCESO').length;
+      document.getElementById('mFinalizados').innerText = datos.filter(d => d.estado_viaje === 'FINALIZADO').length;
+
+      const kmTot = datos.reduce((sum, d) => sum + (parseInt(d.km_recorridos, 10) || 0), 0);
+      document.getElementById('mKmTotales').innerText = `${kmTot} km`;
+    }
+
+    function exportarExcel() {
+      if (datosMonitoreoGlobal.length === 0) return alert('No hay datos para exportar.');
+      const ws = XLSX.utils.json_to_sheet(datosMonitoreoGlobal);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Monitoreo");
+      XLSX.writeFile(wb, `PintaControl_Monitoreo_${hoy}.xlsx`);
+    }
+
+    // 2. SUCURSALES
+    async function cargarSucursales() {
+      try {
+        const res = await fetch(`${API_URL}/sucursales`);
+        const lista = await res.json();
+        listaSucursalesGlobal = lista;
+
+        const tbody = document.getElementById('tablaSucursales');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        lista.forEach(s => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 text-slate-400">${s.id_sucursal}</td>
+              <td class="p-3 font-semibold text-white">${s.nombre}</td>
+              <td class="p-3 text-slate-300">${s.direccion || '-'}</td>
+              <td class="p-3 text-slate-300">${s.telefono || '-'}</td>
+              <td class="p-3">
+                <button onclick="eliminarSucursal(${s.id_sucursal})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2.5 py-1 rounded text-xs transition">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+
+        const selectRep = document.getElementById('repSucursal');
+        if (selectRep) {
+          selectRep.innerHTML = lista.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+        }
+      } catch (e) { alert('Error al cargar sucursales.'); }
+    }
+
+    async function guardarSucursal() {
+      const nombre = document.getElementById('sucNombre').value;
+      const direccion = document.getElementById('sucDireccion').value;
+      const telefono = document.getElementById('sucTelefono').value;
+
+      if (!nombre) return alert('Ingresa el nombre de la sucursal.');
+
+      const res = await fetch(`${API_URL}/sucursales`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, direccion, telefono })
+      });
+
+      if (res.ok) {
+        alert('Sucursal registrada con éxito.');
+        document.getElementById('sucNombre').value = '';
+        document.getElementById('sucDireccion').value = '';
+        document.getElementById('sucTelefono').value = '';
+        cargarSucursales();
+      } else {
+        alert('Error al guardar la sucursal.');
+      }
+    }
+
+    async function eliminarSucursal(id) {
+      if (!confirm('¿Eliminar esta sucursal?')) return;
+      await fetch(`${API_URL}/sucursales/${id}`, { method: 'DELETE' });
+      cargarSucursales();
+    }
+
+    // 3. CARGAR REPARTIDORES
+    async function cargarRepartidores() {
+      try {
+        const res = await fetch(`${API_URL}/repartidores`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const repartidores = await res.json();
+        
+        const tbody = document.getElementById('tablaRepartidores');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!Array.isArray(repartidores) || repartidores.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No hay repartidores registrados.</td></tr>`;
+          return;
+        }
+
+        repartidores.forEach(r => {
+          const badgeEstatus = r.estatus === 'EN_RECORRIDO'
+            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> EN RECORRIDO
+               </span>`
+            : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span> LIBRE
+               </span>`;
+
+          const nombreLimpio = (r.nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          const telefonoLimpio = (r.telefono || '').replace(/'/g, "\\'");
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40 transition border-b border-slate-800">
+              <td class="p-3 font-semibold text-white">${r.nombre}</td>
+              <td class="p-3">${badgeEstatus}</td>
+              <td class="p-3 text-slate-300">📞 ${r.telefono || 'Sin tel'}</td>
+              <td class="p-3 font-mono text-amber-400">🔑 ${r.pin}</td>
+              <td class="p-3 text-slate-300">${r.sucursal || 'Sin asignar'}</td>
+              <td class="p-3">
+                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-800 text-white text-xs p-1.5 rounded border border-slate-700 focus:outline-none">
+                  ${generarOpcionesSucursales(r.id_sucursal)}
+                </select>
+              </td>
+              <td class="p-3 flex items-center gap-1">
+                <button onclick="editarRepartidor(${r.id_usuario}, '${nombreLimpio}', '${telefonoLimpio}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">✏️️ Editar</button>
+                <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin}')" class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded text-xs hover:bg-amber-500 hover:text-white transition">PIN</button>
+                <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        console.error("Error al cargar repartidores:", e);
+      }
+    }
+
+    async function guardarRepartidor() {
+      const nombre = document.getElementById('repNombre').value;
+      const id_sucursal = document.getElementById('repSucursal').value;
+      const telefono = document.getElementById('repTelefono').value;
+      const pin = document.getElementById('repPin').value;
+
+      if (!nombre) return alert('Ingresa el nombre del repartidor.');
+      if (pin && pin.length !== 4) return alert('El PIN debe ser de 4 dígitos.');
+
+      const res = await fetch(`${API_URL}/repartidores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
+      });
+
+      if (res.ok) {
+        alert('Repartidor registrado correctamente.');
+        document.getElementById('repNombre').value = '';
+        document.getElementById('repTelefono').value = '';
+        document.getElementById('repPin').value = '';
+        cargarRepartidores();
+      }
+    }
+
+    async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
+      await fetch(`${API_URL}/repartidores/${id_usuario}/sucursal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_sucursal })
+      });
+      cargarRepartidores();
+    }
+
+    async function editarRepartidor(id_usuario, nombreActual, telefonoActual) {
+      const nuevoNombre = prompt('PASO 1 DE 2:\nIngresa el nombre completo del repartidor:', nombreActual);
+      if (nuevoNombre === null || nuevoNombre.trim() === '') return;
+
+      const nuevoTelefono = prompt('PASO 2 DE 2:\nIngresa el número de teléfono:', telefonoActual);
+      if (nuevoTelefono === null) return;
+
+      try {
+        const res = await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre: nuevoNombre.trim(), telefono: nuevoTelefono.trim() })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('¡Repartidor actualizado correctamente!');
+          cargarRepartidores();
+        } else {
+          alert(data.error || 'Error al actualizar repartidor.');
+        }
+      } catch (e) {
+        alert('Error al conectar con el servidor.');
+      }
+    }
+
+    async function editarPinRepartidor(id_usuario, pinActual) {
+      const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
+      if (nuevoPin && nuevoPin.length === 4) {
+        await fetch(`${API_URL}/repartidores/${id_usuario}/pin`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: nuevoPin })
+        });
+        cargarRepartidores();
+      } else if (nuevoPin !== null) {
+        alert('El PIN debe constar exactamente de 4 dígitos.');
+      }
+    }
+
+    async function eliminarRepartidor(id) {
+      if (!confirm('¿Eliminar repartidor?')) return;
+      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
+      cargarRepartidores();
+    }
+
+    // 4. MOTOS
+    async function cargarMotos() {
+      try {
+        const [resMot, resSuc] = await Promise.all([
+          fetch(`${API_URL}/motos`),
+          fetch(`${API_URL}/sucursales`)
+        ]);
+        const motos = await resMot.json();
+        const sucs = await resSuc.json();
+
+        const selForm = document.getElementById('motoSucursal');
+        selForm.innerHTML = '';
+        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+
+        const tbody = document.getElementById('tablaMotos');
+        tbody.innerHTML = '';
+
+        motos.forEach(m => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-semibold text-white">${m.placa} <span class="block text-xs font-normal text-slate-400">${m.marca_modelo}</span></td>
+              <td class="p-3 text-slate-300">${m.sucursal || 'Sin Asignar'}</td>
+              <td class="p-3 font-bold text-blue-400">${m.kilometraje_actual} km</td>
+              <td class="p-3">
+                <select onchange="actualizarMantenimientoMoto(${m.id_vehiculo}, this.value, '${m.detalles_mecanicos || ''}')" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
+                  <option value="DISPONIBLE" ${m.estado === 'DISPONIBLE' ? 'selected' : ''}>🟢 DISPONIBLE</option>
+                  <option value="CON_DETALLE" ${m.estado === 'CON_DETALLE' ? 'selected' : ''}>🟡 CON DETALLE MECÁNICO</option>
+                  <option value="EN_TALLER" ${m.estado === 'EN_TALLER' ? 'selected' : ''}>🔴 EN TALLER</option>
+                </select>
+              </td>
+              <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
+              <td class="p-3 flex gap-2">
+                <button onclick="editarDatosMoto(${m.id_vehiculo}, '${m.placa}', '${m.marca_modelo}')" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded text-xs hover:bg-indigo-500 hover:text-white transition">
+                  ✏️ Moto
+                </button>
+                <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
+                  ✏️ Km
+                </button>
+                <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">
+                  🛠️ Detalle
+                </button>
+                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {}
+    }
+
+    async function editarKmMoto(id_vehiculo, kmActual) {
+      const nuevoKm = prompt('Ingresa el nuevo kilometraje actual para esta moto:', kmActual);
+      if (nuevoKm !== null && !isNaN(nuevoKm) && nuevoKm.trim() !== '') {
+        const res = await fetch(`${API_URL}/motos/${id_vehiculo}/kilometraje`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kilometraje_actual: parseInt(nuevoKm, 10) })
+        });
+
+        if (res.ok) {
+          alert('Kilometraje actualizado con éxito.');
+          cargarMotos();
+        } else {
+          alert('Error al actualizar el kilometraje.');
+        }
+      }
+    }
+
+    async function editarDatosMoto(id_vehiculo, placaActual, modeloActual) {
+      const nuevaPlaca = prompt('Ingresa la nueva Placa / Num. Económico:', placaActual);
+      if (nuevaPlaca === null || nuevaPlaca.trim() === '') return;
+
+      const nuevoModelo = prompt('Ingresa la nueva Marca / Modelo:', modeloActual);
+      if (nuevoModelo === null || nuevoModelo.trim() === '') return;
+
+      const res = await fetch(`${API_URL}/motos/${id_vehiculo}/datos`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placa: nuevaPlaca.trim(), marca_modelo: nuevoModelo.trim() })
+      });
+
+      if (res.ok) {
+        alert('Datos de la moto actualizados correctamente.');
+        cargarMotos();
+      } else {
+        alert('Error al actualizar los datos de la moto.');
+      }
+    }
+
+    async function guardarMoto() {
+      const placa = document.getElementById('motoPlaca').value;
+      const marca_modelo = document.getElementById('motoModelo').value;
+      const id_sucursal = document.getElementById('motoSucursal').value;
+      const kilometraje_actual = document.getElementById('motoKm').value;
+
+      if (!placa) return alert('Ingresa la placa de la moto.');
+
+      const res = await fetch(`${API_URL}/motos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placa, marca_modelo, id_sucursal, kilometraje_actual: parseInt(kilometraje_actual || 0, 10) })
+      });
+
+      if (res.ok) {
+        alert('Moto registrada con éxito.');
+        document.getElementById('motoPlaca').value = '';
+        document.getElementById('motoModelo').value = '';
+        document.getElementById('motoKm').value = '';
+        cargarMotos();
+      }
+    }
+
+    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
+      const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
+
+      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
+      });
+      cargarMotos();
+    }
+
+    async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
+      const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
+      if (nuevoDetalle !== null) {
+        await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: estadoActual, detalles_mecanicos: nuevoDetalle })
+        });
+        cargarMotos();
+      }
+    }
+
+    async function eliminarMoto(id) {
+      if (!confirm('¿Eliminar esta moto?')) return;
+      await fetch(`${API_URL}/motos/${id}`, { method: 'DELETE' });
+      cargarMotos();
+    }
+
+    // CARGA INICIAL DE DATOS
+    cargarMonitoreo();
+    cargarRepartidores();
+    cargarSucursales();
+    cargarMotos();
+
+    // Actualización periódica en vivo cada 5 segundos
+    setInterval(() => {
+      cargarMonitoreo();
+      cargarRepartidores();
+    }, 5000);
+
+  </script>
+</body>
+</html>
