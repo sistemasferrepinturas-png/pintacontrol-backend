@@ -210,12 +210,13 @@
             <thead>
               <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
                 <th class="p-3">REPARTIDOR</th>
+                <th class="p-3">ESTATUS</th>
                 <th class="p-3">TELÉFONO</th>
                 <th class="p-3">PIN ACCESO</th>
                 <th class="p-3">SUCURSAL ACTUAL</th>
                 <th class="p-3">CAMBIAR SUCURSAL</th>
                 <th class="p-3">ACCIÓN</th>
-              </tr>
+              </tr>      
             </thead>
             <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
           </table>
@@ -454,52 +455,58 @@ function renderizarTablaMonitoreo(datos) {
       cargarSucursales();
     }
 
-    // 3. REPARTIDORES
-    async function cargarRepartidores() {
-      try {
-        const [resRep, resSuc] = await Promise.all([
-          fetch(`${API_URL}/repartidores`),
-          fetch(`${API_URL}/sucursales`)
-        ]);
-        const reps = await resRep.json();
-        const sucs = await resSuc.json();
+    // 3. CARGAR REPARTIDORES
 
-        const selForm = document.getElementById('repSucursal');
-        selForm.innerHTML = '';
-        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+async function cargarRepartidores() {
+  try {
+    const res = await fetch(`${API_URL}/repartidores`);
+    const repartidores = await res.json();
+    const tbody = document.getElementById('tablaRepartidores');
+    if (!tbody) return;
 
-        const tbody = document.getElementById('tablaRepartidores');
-        tbody.innerHTML = '';
-        reps.forEach(r => {
-          let opcionesSucs = sucs.map(s => 
-            `<option value="${s.id_sucursal}" ${s.id_sucursal === r.id_sucursal ? 'selected' : ''}>${s.nombre}</option>`
-          ).join('');
+    tbody.innerHTML = '';
 
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
-              <td class="p-3 font-semibold text-white">${r.nombre}</td>
-              <td class="p-3 text-blue-400 font-medium">${r.telefono ? '📞 ' + r.telefono : '<span class="text-slate-500">Sin Registrar</span>'}</td>
-              <td class="p-3 font-bold text-amber-400">🔑 ${r.pin || '1234'}</td>
-              <td class="p-3 text-slate-300">${r.sucursal || 'Sin Asignar'}</td>
-              <td class="p-3">
-                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded p-1 text-slate-200">
-                  ${opcionesSucs}
-                </select>
-              </td>
-              <td class="p-3 flex gap-2">
-                <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin || '1234'}')" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-500/20 px-2 py-1 rounded text-xs transition">
-                  Cambiar PIN
-                </button>
-                <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-2 py-1 rounded text-xs transition">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          `;
-        });
-      } catch (e) { console.error('Error repartidores:', e); }
+    if (!repartidores || repartidores.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No hay repartidores registrados.</td></tr>`;
+      return;
     }
 
+    repartidores.forEach(r => {
+      // Badge de Estatus en tiempo real
+      const badgeEstatus = r.estatus === 'EN_RECORRIDO'
+        ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> EN RECORRIDO
+           </span>`
+        : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+             <span class="w-2 h-2 rounded-full bg-emerald-400"></span> LIBRE
+           </span>`;
+
+      tbody.innerHTML += `
+        <tr class="hover:bg-slate-800/40 transition border-b border-slate-800">
+          <td class="p-3 font-semibold text-white">${r.nombre}</td>
+          <td class="p-3">${badgeEstatus}</td>
+          <td class="p-3 text-slate-300">📞 ${r.telefono || 'Sin tel'}</td>
+          <td class="p-3 font-mono text-amber-400">🔑 ${r.pin}</td>
+          <td class="p-3 text-slate-300">${r.sucursal || 'Sin asignar'}</td>
+          <td class="p-3">
+            <select onchange="cambiarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-800 text-white text-xs p-1.5 rounded border border-slate-700 focus:outline-none">
+              ${generarOpcionesSucursales(r.id_sucursal)}
+            </select>
+          </td>
+          <td class="p-3 flex items-center gap-1">
+            <button onclick="editarRepartidor(${r.id_usuario}, '${r.nombre.replace(/'/g, "\\'")}', '${r.telefono || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">✏️ Editar</button>
+            <button onclick="cambiarPinRepartidor(${r.id_usuario})" class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded text-xs hover:bg-amber-500 hover:text-white transition">PIN</button>
+            <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (e) {
+    console.error("Error al cargar repartidores:", e);
+  }
+}
+    
+// GUARDAR REPARTIDOR
     async function guardarRepartidor() {
       const nombre = document.getElementById('repNombre').value;
       const id_sucursal = document.getElementById('repSucursal').value;
@@ -532,7 +539,35 @@ function renderizarTablaMonitoreo(datos) {
       });
       cargarRepartidores();
     }
+// EDITAR REPARTIDOR
+async function editarRepartidor(id_usuario, nombreActual, telefonoActual) {
+  const nuevoNombre = prompt('PASO 1 DE 2:\nIngresa el nombre completo del repartidor:', nombreActual);
+  if (nuevoNombre === null || nuevoNombre.trim() === '') return;
 
+  const nuevoTelefono = prompt('PASO 2 DE 2:\nIngresa el número de teléfono:', telefonoActual);
+  if (nuevoTelefono === null) return;
+
+  try {
+    const res = await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nuevoNombre.trim(), telefono: nuevoTelefono.trim() })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert('¡Repartidor actualizado correctamente!');
+      cargarRepartidores();
+    } else {
+      alert(data.error || 'Error al actualizar repartidor.');
+    }
+  } catch (e) {
+    alert('Error al conectar con el servidor.');
+  }
+}
+
+// EDITAR PIN DE REPARTIDOR 
+    
     async function editarPinRepartidor(id_usuario, pinActual) {
       const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
       if (nuevoPin && nuevoPin.length === 4) {
@@ -546,7 +581,9 @@ function renderizarTablaMonitoreo(datos) {
         alert('El PIN debe constar exactamente de 4 dígitos.');
       }
     }
-
+    
+// ELIMINAR REPARTIDOR BOTON
+    
     async function eliminarRepartidor(id) {
       if (!confirm('¿Eliminar repartidor?')) return;
       await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
@@ -695,16 +732,15 @@ async function eliminarMoto(id) {
   cargarMotos();
 }
 
-    // CARGA INICIAL
-    cargarMonitoreo();
+// CARGA INICIAL
+  cargarMonitoreo();
+  cargarRepartidores();
 
-    // Auto-refresco del monitoreo cada 30 segundos si la pestaña activa es monitoreo
-setInterval(() => {
-  const secMonitoreo = document.getElementById('sec-monitoreo');
-  if (secMonitoreo && !secMonitoreo.classList.contains('hidden')) {
+  // Actualización periódica en vivo cada 5 segundos
+  setInterval(() => {
     cargarMonitoreo();
-  }
-}, 600000);
+    cargarRepartidores(); // Mantiene el estatus LIBRE / EN RECORRIDO actualizado en vivo
+  }, 5000);
     
   </script>
 </body>
