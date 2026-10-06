@@ -422,28 +422,26 @@ router.post('/viajes/finalizar', async (req, res) => {
       return res.status(400).json({ error: 'Proporciona el ID del viaje y un kilometraje final válido.' });
     }
 
-    // 1. Obtener el viaje actual y la moto asociada desde turnos_diarios
-    const viajeRes = await pool.query(`
-      SELECT vr.km_inicial, t.id_vehiculo 
-      FROM viajes_recorridos vr
-      LEFT JOIN turnos_diarios t ON vr.id_turno = t.id_turno
-      WHERE vr.id_viaje = $1
-    `, [id_viaje]);
+    // 1. Obtener los datos del viaje activo
+    const viajeRes = await pool.query(
+      "SELECT km_inicial, id_turno FROM viajes_recorridos WHERE id_viaje = $1", 
+      [parseInt(id_viaje, 10)]
+    );
 
     if (viajeRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Viaje no encontrado.' });
+      return res.status(404).json({ error: 'El viaje número ' + id_viaje + ' no fue encontrado en la base de datos.' });
     }
 
-    const { id_vehiculo, km_inicial } = viajeRes.rows[0];
+    const { km_inicial, id_turno } = viajeRes.rows[0];
 
     // 2. Validación de kilometraje mayor al inicial
     if (parseInt(km_final, 10) <= parseInt(km_inicial, 10)) {
-      return res.status(400).json({ error: 'El kilometraje final debe ser estrictamente mayor al inicial.' });
+      return res.status(400).json({ error: 'El kilometraje final debe ser estrictamente mayor al inicial (' + km_inicial + ' km).' });
     }
 
     const km_recorridos = parseInt(km_final, 10) - parseInt(km_inicial, 10);
 
-    // 3. Intentar guardar con la columna notas; si falla la columna en DB, guardar sin ella
+    // 3. Finalizar el viaje en la tabla viajes_recorridos
     let viajeActualizado;
     try {
       const queryViaje = `
@@ -452,26 +450,33 @@ router.post('/viajes/finalizar', async (req, res) => {
         WHERE id_viaje = $4 
         RETURNING *;
       `;
-      viajeActualizado = await pool.query(queryViaje, [parseInt(km_final, 10), km_recorridos, notas || null, id_viaje]);
-    } catch (errColumna) {
+      viajeActualizado = await pool.query(queryViaje, [parseInt(km_final, 10), km_recorridos, notas || null, parseInt(id_viaje, 10)]);
+    } catch (errNotas) {
+      // Si la columna notas aún no existiera en la DB
       const queryFallback = `
         UPDATE viajes_recorridos 
         SET km_final = $1, km_recorridos = $2, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
         WHERE id_viaje = $3 
         RETURNING *;
       `;
-      viajeActualizado = await pool.query(queryFallback, [parseInt(km_final, 10), km_recorridos, id_viaje]);
+      viajeActualizado = await pool.query(queryFallback, [parseInt(km_final, 10), km_recorridos, parseInt(id_viaje, 10)]);
     }
 
-    // 4. Actualizar el kilometraje de la moto
-    if (id_vehiculo) {
-      await pool.query("UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", [parseInt(km_final, 10), id_vehiculo]);
+    // 4. Actualizar el kilometraje de la moto asociada al turno
+    if (id_turno) {
+      const turnoRes = await pool.query("SELECT id_vehiculo FROM turnos_diarios WHERE id_turno = $1", [id_turno]);
+      if (turnoRes.rows.length > 0 && turnoRes.rows[0].id_vehiculo) {
+        await pool.query(
+          "UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", 
+          [parseInt(km_final, 10), turnoRes.rows[0].id_vehiculo]
+        );
+      }
     }
 
     res.json({ mensaje: 'Recorrido finalizado correctamente.', viaje: viajeActualizado.rows[0] });
   } catch (e) {
-    console.error("Error crítico al finalizar viaje:", e);
-    res.status(500).json({ error: 'Error al finalizar el recorrido.' });
+    console.error("Error al finalizar viaje:", e);
+    res.status(500).json({ error: 'Error interno del servidor al finalizar: ' + e.message });
   }
 });
 
