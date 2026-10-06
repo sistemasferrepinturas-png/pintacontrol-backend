@@ -19,7 +19,7 @@
     </div>
     <div class="flex items-center gap-4 mt-2 sm:mt-0">
       <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema en línea
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema en línea
       </span>
     </div>
   </header>
@@ -125,6 +125,7 @@
                 <th class="p-3">ESTADO</th>
                 <th class="p-3">INICIO</th>
                 <th class="p-3">LLEGADA</th>
+                <th class="p-3">NOTAS / OBSERVACIONES</th>
               </tr>
             </thead>
             <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
@@ -348,7 +349,7 @@ function renderizarTablaMonitoreo(datos) {
   tbody.innerHTML = '';
 
   if (!datos || datos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
+     tbody.innerHTML = `<tr><td colspan="13" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
     return;
   }
 
@@ -356,7 +357,7 @@ function renderizarTablaMonitoreo(datos) {
     const badgeClass = v.estado_viaje === 'EN_PROCESO' 
       ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
       : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-
+    const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
     const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
     const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'En camino...';
 
@@ -374,6 +375,7 @@ function renderizarTablaMonitoreo(datos) {
         <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
         <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
         <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
+        <td class="p-3">${notaTexto}</td>
       </tr>
     `;
   });
