@@ -71,15 +71,29 @@ router.put('/sucursales/:id/estado-uso', async (req, res) => {
 router.get('/repartidores', async (req, res) => {
   try {
     let query = `
-      SELECT u.id_usuario, u.nombre, u.email, u.telefono, u.pin, u.id_sucursal, s.nombre AS sucursal
+      SELECT 
+        u.id_usuario, 
+        u.nombre, 
+        u.email, 
+        u.telefono, 
+        u.pin, 
+        u.id_sucursal, 
+        s.nombre AS sucursal,
+        CASE 
+          WHEN COUNT(vr.id_viaje) > 0 THEN 'EN_RECORRIDO'
+          ELSE 'LIBRE'
+        END AS estatus
       FROM usuarios u
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
+      LEFT JOIN viajes_recorridos vr ON u.id_usuario = vr.id_usuario AND vr.estado_viaje = 'EN_PROCESO'
       WHERE u.rol = 'REPARTIDOR' AND u.activo = TRUE
+      GROUP BY u.id_usuario, s.nombre
       ORDER BY u.nombre ASC
     `;
     const resu = await pool.query(query);
     res.json(resu.rows);
   } catch (e) {
+    console.error("Error al consultar repartidores:", e);
     res.status(500).json({ error: 'Error al consultar repartidores.' });
   }
 });
@@ -118,6 +132,35 @@ router.put('/repartidores/:id_usuario/pin', async (req, res) => {
     res.json({ mensaje: 'PIN actualizado correctamente.' });
   } catch (e) {
     res.status(500).json({ error: 'Error al actualizar PIN.' });
+  }
+});
+
+// Actualizar datos del repartidor (Nombre y Teléfono)
+router.put('/repartidores/:id_usuario/datos', async (req, res) => {
+  try {
+    const { id_usuario } = req.params;
+    const { nombre, telefono } = req.body;
+
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ error: 'El nombre es obligatorio.' });
+    }
+
+    const query = `
+      UPDATE usuarios 
+      SET nombre = $1, telefono = $2 
+      WHERE id_usuario = $3 
+      RETURNING *;
+    `;
+    const actual = await pool.query(query, [nombre.trim(), telefono ? telefono.trim() : null, id_usuario]);
+
+    if (actual.rows.length === 0) {
+      return res.status(404).json({ error: 'Repartidor no encontrado.' });
+    }
+
+    res.json({ mensaje: 'Datos del repartidor actualizados correctamente.', repartidor: actual.rows[0] });
+  } catch (e) {
+    console.error("Error al actualizar repartidor:", e);
+    res.status(500).json({ error: 'Error al actualizar repartidor.' });
   }
 });
 
