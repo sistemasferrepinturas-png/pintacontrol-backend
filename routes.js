@@ -141,29 +141,39 @@ router.put('/repartidores/:id_usuario/pin', async (req, res) => {
   }
 });
 
-// Actualizar datos del repartidor (Nombre y Teléfono)
+// Actualizar datos o sucursal de un repartidor
 router.put('/repartidores/:id_usuario/datos', async (req, res) => {
   try {
     const { id_usuario } = req.params;
-    const { nombre, telefono } = req.body;
+    const { nombre, telefono, id_sucursal } = req.body;
 
-    if (!nombre || !nombre.trim()) {
-      return res.status(400).json({ error: 'El nombre es obligatorio.' });
+    let query = "UPDATE usuarios SET ";
+    const params = [];
+    let contador = 1;
+
+    if (nombre) {
+      query += `nombre = $${contador}, `;
+      params.push(nombre.trim());
+      contador++;
+    }
+    if (telefono !== undefined) {
+      query += `telefono = $${contador}, `;
+      params.push(telefono ? telefono.trim() : null);
+      contador++;
+    }
+    if (id_sucursal) {
+      query += `id_sucursal = $${contador}, `;
+      params.push(parseInt(id_sucursal, 10));
+      contador++;
     }
 
-    const query = `
-      UPDATE usuarios 
-      SET nombre = $1, telefono = $2 
-      WHERE id_usuario = $3 
-      RETURNING *;
-    `;
-    const actual = await pool.query(query, [nombre.trim(), telefono ? telefono.trim() : null, id_usuario]);
+    // Quitar la última coma y espacio
+    query = query.slice(0, -2);
+    query += ` WHERE id_usuario = $${contador} RETURNING *;`;
+    params.push(id_usuario);
 
-    if (actual.rows.length === 0) {
-      return res.status(404).json({ error: 'Repartidor no encontrado.' });
-    }
-
-    res.json({ mensaje: 'Datos del repartidor actualizados correctamente.', repartidor: actual.rows[0] });
+    const actual = await pool.query(query, params);
+    res.json({ mensaje: 'Repartidor actualizado correctamente.', repartidor: actual.rows[0] });
   } catch (e) {
     console.error("Error al actualizar repartidor:", e);
     res.status(500).json({ error: 'Error al actualizar repartidor.' });
