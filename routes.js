@@ -66,7 +66,7 @@ router.put('/sucursales/:id/estado-uso', async (req, res) => {
 });
 
 /* ==========================================================================
-   2. REPARTIDORES (Con PIN de 4 dígitos)
+   2. REPARTIDORES (Con PIN, Modificación, Cambio de Sucursal y Borrado Lógico)
    ========================================================================== */
 
 router.get('/repartidores', async (req, res) => {
@@ -141,7 +141,7 @@ router.put('/repartidores/:id_usuario/pin', async (req, res) => {
   }
 });
 
-// Actualizar datos o sucursal de un repartidor
+// Actualizar datos, teléfono o sucursal de un repartidor
 router.put('/repartidores/:id_usuario/datos', async (req, res) => {
   try {
     const { id_usuario } = req.params;
@@ -167,7 +167,7 @@ router.put('/repartidores/:id_usuario/datos', async (req, res) => {
       contador++;
     }
 
-    // Quitar la última coma y espacio
+    // Quitar la última coma y espacio sobrante
     query = query.slice(0, -2);
     query += ` WHERE id_usuario = $${contador} RETURNING *;`;
     params.push(id_usuario);
@@ -177,6 +177,26 @@ router.put('/repartidores/:id_usuario/datos', async (req, res) => {
   } catch (e) {
     console.error("Error al actualizar repartidor:", e);
     res.status(500).json({ error: 'Error al actualizar repartidor.' });
+  }
+});
+
+// Eliminar repartidor (Borrado lógico)
+router.delete('/repartidores/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await pool.query(
+      "UPDATE usuarios SET activo = FALSE WHERE id_usuario = $1 RETURNING *", 
+      [id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ error: 'Repartidor no encontrado.' });
+    }
+
+    res.json({ mensaje: 'Repartidor eliminado correctamente.' });
+  } catch (e) {
+    console.error("Error al eliminar repartidor:", e);
+    res.status(500).json({ error: 'Error al eliminar repartidor: ' + e.message });
   }
 });
 
@@ -208,7 +228,6 @@ router.get('/motos', async (req, res) => {
   }
 });
 
-// REGISTRAR / REUTILIZAR MOTO
 router.post('/motos', async (req, res) => {
   try {
     const { placa, marca_modelo, id_sucursal, kilometraje_actual } = req.body;
@@ -216,11 +235,9 @@ router.post('/motos', async (req, res) => {
 
     const placaLimpia = placa.trim().toUpperCase();
 
-    // 1. Buscar si la placa ya existe en la base de datos (activa o inactiva)
     const motoExistente = await pool.query("SELECT id_vehiculo FROM vehiculos WHERE UPPER(placa) = $1", [placaLimpia]);
 
     if (motoExistente.rows.length > 0) {
-      // 2. Si existe, la reactivamos y actualizamos sus datos
       const idVehiculo = motoExistente.rows[0].id_vehiculo;
       const queryReactivar = `
         UPDATE vehiculos 
@@ -232,7 +249,6 @@ router.post('/motos', async (req, res) => {
       return res.status(200).json(motoReactivada.rows[0]);
     }
 
-    // 3. Si no existe, se inserta normalmente
     const queryInsert = `
       INSERT INTO vehiculos (placa, marca_modelo, id_sucursal, kilometraje_actual, estado, activo) 
       VALUES ($1, $2, $3, $4, 'DISPONIBLE', TRUE) 
@@ -251,7 +267,6 @@ router.put('/motos/:id_vehiculo/mantenimiento', async (req, res) => {
     const { id_vehiculo } = req.params;
     const { estado, detalles_mecanicos } = req.body;
 
-    // Si el estado vuelve a ser DISPONIBLE, limpiamos los detalles mecánicos automáticamente
     const esDisponible = estado === 'DISPONIBLE';
     const detalleLimpio = esDisponible ? null : (detalles_mecanicos || null);
 
@@ -278,7 +293,6 @@ router.delete('/motos/:id', async (req, res) => {
   }
 });
 
-// Actualizar kilometraje manual de una moto
 router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
   try {
     const { id_vehiculo } = req.params;
@@ -296,7 +310,6 @@ router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
   }
 });
 
-// Actualizar datos de la moto (Placa y Marca/Modelo)
 router.put('/motos/:id_vehiculo/datos', async (req, res) => {
   try {
     const { id_vehiculo } = req.params;
@@ -316,12 +329,14 @@ router.put('/motos/:id_vehiculo/datos', async (req, res) => {
 });
 
 /* ==========================================================================
-   MONITOREO EN VIVO (Con lectura de notas)
+   4. MONITOREO EN VIVO (Con notas y fotos del odómetro)
    ========================================================================== */
 router.get('/admin/monitoreo', async (req, res) => {
   try {
-    // Crear la columna 'notas' automáticamente si aún no existe en la base de datos
+    // Asegurar columnas requeridas automáticamente
     await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS notas TEXT;");
+    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_inicio TEXT;");
+    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_fin TEXT;");
 
     const { fecha_inicio, fecha_fin } = req.query;
     let queryAdmin = `
@@ -342,7 +357,9 @@ router.get('/admin/monitoreo', async (req, res) => {
         vr.estado_viaje,
         vr.fecha_hora_inicio,
         vr.fecha_hora_fin,
-        vr.notas
+        vr.notas,
+        vr.foto_odometro_inicio,
+        vr.foto_odometro_fin
       FROM viajes_recorridos vr
       JOIN usuarios u ON vr.id_usuario = u.id_usuario
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
@@ -368,7 +385,7 @@ router.get('/admin/monitoreo', async (req, res) => {
 });
 
 /* ==========================================================================
-   repartidor
+   5. OPERACIONES DE REPARTIDORES EN APP MÓVIL
    ========================================================================== */
 
 router.get('/repartidor/:id_usuario/estado', async (req, res) => {
@@ -414,13 +431,13 @@ router.get('/repartidor/:id_usuario/estado', async (req, res) => {
   }
 });
 
-
+// INICIAR VIAJE
 router.post('/viajes/inicio', async (req, res) => {
   const client = await pool.connect();
   try {
     const { 
       id_usuario, id_vehiculo, id_sucursal, direccion_destino, 
-      forma_pago_esperada, fondo_cambio_recibido, km_inicial 
+      forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio 
     } = req.body;
 
     if (!id_usuario || !id_vehiculo) {
@@ -462,13 +479,13 @@ router.post('/viajes/inicio', async (req, res) => {
 
     const queryViaje = `
       INSERT INTO viajes_recorridos 
-        (id_turno, id_usuario, numero_viaje_del_dia, direccion_destino, forma_pago_esperada, fondo_cambio_recibido, km_inicial, estado_viaje)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'EN_PROCESO')
+        (id_turno, id_usuario, numero_viaje_del_dia, direccion_destino, forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio, estado_viaje)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'EN_PROCESO')
       RETURNING *;
     `;
     const valuesViaje = [
       id_turno, id_usuario, numViajeActual, direccion_destino, forma_pago_esperada, 
-      fondo_cambio_recibido || 0, km_inicial
+      fondo_cambio_recibido || 0, km_inicial, foto_odometro_inicio || null
     ];
     const nuevoViaje = await client.query(queryViaje, valuesViaje);
 
@@ -478,24 +495,22 @@ router.post('/viajes/inicio', async (req, res) => {
     res.status(201).json({ mensaje: 'Viaje iniciado correctamente', viaje: nuevoViaje.rows[0] });
   } catch (error) {
     await client.query('ROLLBACK');
+    console.error("Error al iniciar viaje:", error);
     res.status(500).json({ error: 'Error al iniciar el viaje.' });
   } finally {
     client.release();
   }
 });
 
-/* ==========================================================================
-   FINALIZAR RECORRIDO (Ajustado a las columnas reales de la DB)
-   ========================================================================== */
+// FINALIZAR RECORRIDO
 router.post('/viajes/finalizar', async (req, res) => {
   try {
-    const { id_viaje, km_final, notas } = req.body;
+    const { id_viaje, km_final, notas, foto_odometro_fin } = req.body;
 
     if (!id_viaje || km_final === undefined || isNaN(km_final)) {
       return res.status(400).json({ error: 'Proporciona el ID del viaje y un kilometraje final válido.' });
     }
 
-    // 1. Obtener el viaje actual y la moto asociada desde turnos_diarios
     const viajeRes = await pool.query(`
       SELECT vr.km_inicial, t.id_vehiculo 
       FROM viajes_recorridos vr
@@ -509,33 +524,23 @@ router.post('/viajes/finalizar', async (req, res) => {
 
     const { id_vehiculo, km_inicial } = viajeRes.rows[0];
 
-    // 2. Validación: El kilometraje final debe ser estrictamente mayor al inicial
     if (parseInt(km_final, 10) <= parseInt(km_inicial, 10)) {
       return res.status(400).json({ error: `El kilometraje final debe ser mayor al inicial (${km_inicial} km).` });
     }
 
-    // 3. Actualizar la tabla viajes_recorridos usando SOLO columnas existentes
-    let viajeActualizado;
-    try {
-      const queryViaje = `
-        UPDATE viajes_recorridos 
-        SET km_final = $1, notas = $2, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
-        WHERE id_viaje = $3 
-        RETURNING *;
-      `;
-      viajeActualizado = await pool.query(queryViaje, [parseInt(km_final, 10), notas || null, parseInt(id_viaje, 10)]);
-    } catch (errNotas) {
-      // Si la columna notas tampoco existe en la tabla, actualizamos sin ella
-      const queryFallback = `
-        UPDATE viajes_recorridos 
-        SET km_final = $1, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
-        WHERE id_viaje = $2 
-        RETURNING *;
-      `;
-      viajeActualizado = await pool.query(queryFallback, [parseInt(km_final, 10), parseInt(id_viaje, 10)]);
-    }
+    const queryViaje = `
+      UPDATE viajes_recorridos 
+      SET km_final = $1, notas = $2, foto_odometro_fin = $3, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
+      WHERE id_viaje = $4 
+      RETURNING *;
+    `;
+    const viajeActualizado = await pool.query(queryViaje, [
+      parseInt(km_final, 10), 
+      notas || null, 
+      foto_odometro_fin || null, 
+      parseInt(id_viaje, 10)
+    ]);
 
-    // 4. Actualizar el kilometraje actual de la moto en la flotilla
     if (id_vehiculo) {
       await pool.query(
         "UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", 
