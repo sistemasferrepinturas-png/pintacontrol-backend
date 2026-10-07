@@ -517,7 +517,7 @@
                 </select>
               </td>
               <td class="p-3 flex items-center gap-1">
-                <button onclick="editarRepartidor(${r.id_usuario}, '${nombreLimpio}', '${telefonoLimpio}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">✏️️ Editar</button>
+                <button onclick="editarRepartidor(${r.id_usuario}, '${nombreLimpio}', '${telefonoLimpio}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">✏️ Editar</button>
                 <button onclick="editarPinRepartidor(${r.id_usuario}, '${r.pin}')" class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded text-xs hover:bg-amber-500 hover:text-white transition">PIN</button>
                 <button onclick="eliminarRepartidor(${r.id_usuario})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
               </td>
@@ -554,12 +554,28 @@
     }
 
     async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
-      await fetch(`${API_URL}/repartidores/${id_usuario}/sucursal`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_sucursal })
-      });
-      cargarRepartidores();
+      try {
+        const res = await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_sucursal: parseInt(id_sucursal, 10) })
+        });
+        
+        if (res.ok) {
+          alert('¡Sucursal del repartidor reasignada correctamente!');
+          cargarRepartidores();
+        } else {
+          // Intentar actualización vía registro
+          await fetch(`${API_URL}/repartidores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_usuario, id_sucursal: parseInt(id_sucursal, 10) })
+          });
+          cargarRepartidores();
+        }
+      } catch (e) {
+        alert('Error al reasignar sucursal.');
+      }
     }
 
     async function editarRepartidor(id_usuario, nombreActual, telefonoActual) {
@@ -596,6 +612,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: nuevoPin })
         });
+        alert('PIN actualizado con éxito.');
         cargarRepartidores();
       } else if (nuevoPin !== null) {
         alert('El PIN debe constar exactamente de 4 dígitos.');
@@ -604,8 +621,17 @@
 
     async function eliminarRepartidor(id) {
       if (!confirm('¿Eliminar repartidor?')) return;
-      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
-      cargarRepartidores();
+      try {
+        const res = await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('Repartidor eliminado.');
+          cargarRepartidores();
+        } else {
+          alert('Error al eliminar repartidor.');
+        }
+      } catch (e) {
+        alert('Error de conexión al eliminar.');
+      }
     }
 
     // 4. MOTOS
@@ -760,7 +786,7 @@
     setInterval(() => {
       cargarMonitoreo();
       cargarRepartidores();
-    }, 5000);
+    }, 60000);
 
   </script>
 </body>
