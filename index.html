@@ -357,47 +357,85 @@
       renderizarTablaMonitoreo(filtrados);
       actualizarMetricas(filtrados);
     }
+// TABLA DE MONITOREO
 
-    function renderizarTablaMonitoreo(datos) {
-      const tbody = document.getElementById('tablaMonitoreo');
-      tbody.innerHTML = '';
+function renderizarTablaMonitoreo(datos) {
+  const tbody = document.getElementById('tablaMonitoreo');
+  tbody.innerHTML = '';
 
-      if (!datos || datos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
-        return;
-      }
+  if (!datos || datos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
+    return;
+  }
 
-      datos.forEach(v => {
-        const badgeClass = v.estado_viaje === 'EN_PROCESO' 
-          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-        const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
-        const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
-        const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'En camino...';
+  datos.forEach(v => {
+    const badgeClass = v.estado_viaje === 'EN_PROCESO' 
+      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
+    const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+    const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'En camino...';
 
-        const imgInicio = v.foto_odometro_inicio ? `<a href="${v.foto_odometro_inicio}" target="_blank" class="text-blue-400 underline text-xs">📷 Inicio</a>` : '-';
-        const imgFin = v.foto_odometro_fin ? `<a href="${v.foto_odometro_fin}" target="_blank" class="text-emerald-400 underline text-xs">📷 Fin</a>` : '-';
+    // Botones para ver fotos sin saturar la vista
+    const btnInicio = v.foto_odometro_inicio 
+      ? `<button onclick="verFotoBase64('${v.id_viaje}', 'inicio')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-xs hover:bg-blue-500 hover:text-white transition">📸 Inicio</button>` 
+      : '<span class="text-xs text-slate-500">-</span>';
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-800/40 transition">
-            <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
-            <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
-            <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
-            <td class="p-3 text-slate-200">${v.direccion_destino}</td>
-            <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
-            <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
-            <td class="p-3 text-slate-400">${v.km_inicial} km</td>
-            <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
-            <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
-            <td class="p-3 flex gap-2 items-center">${imgInicio} | ${imgFin}</td>
-            <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
-            <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
-            <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
-            <td class="p-3">${notaTexto}</td>
-          </tr>
-        `;
-      });
-    }
+    const btnFin = v.foto_odometro_fin 
+      ? `<button onclick="verFotoBase64('${v.id_viaje}', 'fin')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-xs hover:bg-emerald-500 hover:text-white transition">📸 Fin</button>` 
+      : '<span class="text-xs text-slate-500">-</span>';
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-slate-800/40 transition">
+        <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
+        <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
+        <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
+        <td class="p-3 text-slate-200">${v.direccion_destino}</td>
+        <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
+        <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
+        <td class="p-3 text-slate-400">${v.km_inicial} km</td>
+        <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
+        <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
+        <td class="p-3 flex gap-1 items-center">${btnInicio} ${btnFin}</td>
+        <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
+        <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
+        <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
+        <td class="p-3">${notaTexto}</td>
+      </tr>
+    `;
+  });
+}
+
+// Función para abrir la foto en una ventana nueva limpia
+    
+function verFotoBase64(idViaje, tipo) {
+  const viaje = datosMonitoreoGlobal.find(d => d.id_viaje == idViaje);
+  if (!viaje) return alert('No se encontraron los datos del viaje.');
+
+  const foto = tipo === 'inicio' ? viaje.foto_odometro_inicio : viaje.foto_odometro_fin;
+  if (!foto) return alert('No hay foto registrada.');
+
+  const src = foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
+
+  const win = window.open("", "_blank");
+  win.document.write(`
+    <html>
+      <head>
+        <title>Foto Odómetro - Viaje #${viaje.numero_viaje_del_dia}</title>
+        <style>
+          body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+          h3 { color: #38bdf8; margin-bottom: 10px; }
+          img { max-width: 90%; max-height: 80vh; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        </style>
+      </head>
+      <body>
+        <h3>Evidencia Odómetro (${tipo.toUpperCase()}) - Viaje #${viaje.numero_viaje_del_dia}</h3>
+        <img src="${src}" alt="Foto Odómetro" />
+      </body>
+    </html>
+  `);
+}
+    
 
     function actualizarMetricas(datos) {
       document.getElementById('mTotalViajes').innerText = datos.length;
