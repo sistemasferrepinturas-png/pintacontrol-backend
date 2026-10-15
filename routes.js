@@ -634,12 +634,12 @@ router.get('/auditoria', async (req, res) => {
 });
 
 // ==========================================
-// 2. GESTIÓN DE USUARIOS DEL SISTEMA
+// 2. GESTIÓN DE USUARIOS DEL SISTEMA (ACTUALIZADO)
 // ==========================================
 
 router.get('/usuarios-sistema', async (req, res) => {
   try {
-    const result = await db.query(
+    const result = await pool.query(
       `SELECT u.*, s.nombre as sucursal_nombre 
        FROM usuarios_sistema u 
        LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal 
@@ -652,16 +652,44 @@ router.get('/usuarios-sistema', async (req, res) => {
   }
 });
 
+// Registrar o Reactivar Usuario
 router.post('/usuarios-sistema', async (req, res) => {
   const { id_sucursal, nombre_completo, usuario, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
   try {
-    const result = await db.query(
+    // Verificar si el usuario ya existe en la base de datos (activo o inactivo)
+    const check = await pool.query(`SELECT * FROM usuarios_sistema WHERE usuario = $1`, [usuario]);
+
+    if (check.rows.length > 0) {
+      const userExistente = check.rows[0];
+      if (!userExistente.activo) {
+        // Si estaba inactivo (previamente borrado), lo reactivamos con la nueva información
+        const result = await pool.query(
+          `UPDATE usuarios_sistema 
+           SET id_sucursal=$1, nombre_completo=$2, password_hash=$3, puesto=$4, departamento=$5, telefono=$6, permisos=$7, activo=TRUE 
+           WHERE id_usuario_sys=$8 RETURNING *`,
+          [id_sucursal || null, nombre_completo, password, puesto, departamento, telefono, JSON.stringify(permisos), userExistente.id_usuario_sys]
+        );
+
+        await pool.query(
+          `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
+           VALUES ($1, 'REACTIVAR_USUARIO', 'USUARIOS', 'Se reactivó el usuario ' || $2)`,
+          [usuario_operador || 'Admin', usuario]
+        );
+
+        return res.json(result.rows[0]);
+      } else {
+        return res.status(400).json({ error: `El usuario "${usuario}" ya se encuentra activo en el sistema.` });
+      }
+    }
+
+    // Si es un usuario completamente nuevo
+    const result = await pool.query(
       `INSERT INTO usuarios_sistema (id_sucursal, nombre_completo, usuario, password_hash, puesto, departamento, telefono, permisos)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [id_sucursal || null, nombre_completo, usuario, password, puesto, departamento, telefono, JSON.stringify(permisos)]
     );
 
-    await db.query(
+    await pool.query(
       `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
        VALUES ($1, 'CREAR_USUARIO', 'USUARIOS', 'Se creó el usuario ' || $2)`,
       [usuario_operador || 'Admin', usuario]
@@ -673,6 +701,7 @@ router.post('/usuarios-sistema', async (req, res) => {
   }
 });
 
+// Editar/Actualizar Usuario Existente
 router.put('/usuarios-sistema/:id', async (req, res) => {
   const { id } = req.params;
   const { id_sucursal, nombre_completo, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
@@ -688,9 +717,9 @@ router.put('/usuarios-sistema/:id', async (req, res) => {
       params.push(id);
     }
 
-    await db.query(query, params);
+    await pool.query(query, params);
 
-    await db.query(
+    await pool.query(
       `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
        VALUES ($1, 'MODIFICAR_USUARIO', 'USUARIOS', 'Se modificó el usuario ID ' || $2)`,
       [usuario_operador || 'Admin', id]
@@ -702,13 +731,17 @@ router.put('/usuarios-sistema/:id', async (req, res) => {
   }
 });
 
+// Eliminar Usuario Permanentemente
 router.delete('/usuarios-sistema/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query(`UPDATE usuarios_sistema SET activo = FALSE WHERE id_usuario_sys = $1`, [id]);
+    // Intenta borrar el registro físicamente
+    await pool.query(`DELETE FROM usuarios_sistema WHERE id_usuario_sys = $1`, [id]);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    // Si la clave foránea impide el borrado directo, realiza soft-delete
+    await pool.query(`UPDATE usuarios_sistema SET activo = FALSE WHERE id_usuario_sys = $1`, [id]);
+    res.json({ ok: true });
   }
 });
 
