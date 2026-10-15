@@ -350,6 +350,18 @@
                 <input type="text" id="pagoProveedor" placeholder="Ej. Telmex 100M - Paquete Infinitum" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
               </div>
               <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR / DETALLE:</label>
+                <input type="text" id="pagoProveedor" placeholder="Ej. Telmex 100M - Paquete Infinitum" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">CUENTA O NÚMERO DE SERVICIO:</label>
+                <input type="text" id="pagoNumeroCuenta" placeholder="Ej. 9611234567 / Contrato 88421" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">CLAVE O REFERENCIA DE PAGO:</label>
+                <input type="text" id="pagoReferencia" placeholder="Ej. REF-0029318" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-1">MONTO ESTIMADO ($):</label>
                 <input type="number" id="pagoMonto" placeholder="Ej. 599.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
               </div>
@@ -1033,7 +1045,7 @@ async function cargarComboSucursales() {
     }
 
     // PAGOS Y SERVICIOS
-    async function cargarPagosServicios() {
+async function cargarPagosServicios() {
       try {
         const res = await fetch(`${API_URL}/pagos-servicios`);
         const pagos = await res.json();
@@ -1052,10 +1064,18 @@ async function cargarComboSucursales() {
             badge = `<span class="px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold animate-pulse">⚠️ En ${dias} días</span>`;
           }
 
+          const txtCuenta = p.numero_cuenta ? `<span class="block text-[11px] text-blue-400 font-mono">💳 Cta: ${p.numero_cuenta}</span>` : '';
+          const txtRef = p.referencia_pago ? `<span class="block text-[11px] text-amber-300 font-mono">🔑 Ref: ${p.referencia_pago}</span>` : '';
+
           tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
+            <tr class="hover:bg-slate-800/40 border-b border-slate-800">
               <td class="p-3 text-slate-300">${p.sucursal_nombre}</td>
-              <td class="p-3 font-semibold text-white">${p.tipo_servicio} <span class="block text-xs font-normal text-slate-400">${p.proveedor_descripcion}</span></td>
+              <td class="p-3 font-semibold text-white">
+                ${p.tipo_servicio} 
+                <span class="block text-xs font-normal text-slate-400">${p.proveedor_descripcion}</span>
+                ${txtCuenta}
+                ${txtRef}
+              </td>
               <td class="p-3 font-bold text-blue-400">$${p.monto}</td>
               <td class="p-3 text-xs text-slate-400">${p.periodicidad}</td>
               <td class="p-3 text-slate-200">${new Date(p.proxima_fecha_pago).toLocaleDateString()}</td>
@@ -1077,12 +1097,15 @@ async function cargarComboSucursales() {
         }
       } catch (e) {}
     }
-
-    async function guardarPagoServicio() {
+    
+    
+      async function guardarPagoServicio() {
       const payload = {
         id_sucursal: document.getElementById('pagoSucursal').value,
         tipo_servicio: document.getElementById('pagoTipo').value,
         proveedor_descripcion: document.getElementById('pagoProveedor').value,
+        numero_cuenta: document.getElementById('pagoNumeroCuenta').value,
+        referencia_pago: document.getElementById('pagoReferencia').value,
         monto: parseFloat(document.getElementById('pagoMonto').value || 0),
         periodicidad: document.getElementById('pagoPeriodicidad').value,
         proxima_fecha_pago: document.getElementById('pagoFecha').value
@@ -1099,8 +1122,13 @@ async function cargarComboSucursales() {
       if (res.ok) {
         alert('Servicio registrado correctamente.');
         document.getElementById('pagoProveedor').value = '';
+        document.getElementById('pagoNumeroCuenta').value = '';
+        document.getElementById('pagoReferencia').value = '';
         document.getElementById('pagoMonto').value = '';
         cargarPagosServicios();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al guardar el servicio.');
       }
     }
 
