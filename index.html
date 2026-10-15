@@ -393,79 +393,85 @@
         </div>
       </section>
 
-      <!-- 6. USUARIOS & PERMISOS -->
-      <section id="sec-usuarios" class="hidden space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-            <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nuevo Usuario</h2>
-            <div class="space-y-3">
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
-                <select id="userSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
-                <input type="text" id="userNombre" placeholder="Ej. Ana María López" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
-                <input type="text" id="userUsername" placeholder="Ej. analopez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
-                <input type="password" id="userPassword" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO:</label>
-                <input type="text" id="userPuesto" placeholder="Ej. General de RH" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">DEPARTAMENTO:</label>
-                <input type="text" id="userDepto" placeholder="Ej. Recursos Humanos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO DE CONTACTO:</label>
-                <input type="text" id="userTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-              </div>
+<!-- 6. USUARIOS & PERMISOS -->
+    <section id="sec-usuarios" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+          <h2 id="tituloFormUsuario" class="text-lg font-bold text-white mb-4">➕ Registrar Nuevo Usuario</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
+              <select id="userSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
+              <input type="text" id="userNombre" placeholder="Ej. Ana María López" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
+              <input type="text" id="userUsername" placeholder="Ej. analopez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
+              <input type="password" id="userPassword" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              <p id="hintPassword" class="text-[10px] text-amber-400 mt-1 hidden">Dejar en blanco para conservar la contraseña actual.</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO:</label>
+              <input type="text" id="userPuesto" placeholder="Ej. General de RH" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">DEPARTAMENTO:</label>
+              <input type="text" id="userDepto" placeholder="Ej. Recursos Humanos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO DE CONTACTO:</label>
+              <input type="text" id="userTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
 
-              <div class="border-t border-slate-700 pt-3">
-                <label class="block text-xs font-bold text-blue-400 mb-2">PERMISOS DE ACCESO:</label>
-                <div class="space-y-1 text-xs">
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_monitoreo" checked> Monitoreo en Vivo</label>
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_sucursales"> Sucursales</label>
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_repartidores"> Repartidores</label>
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_motos"> Motos & Mantenimiento</label>
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_pagos"> Pagos & Servicios</label>
-                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_usuarios"> Usuarios & Permisos</label>
-                </div>
+            <div class="border-t border-slate-700 pt-3">
+              <label class="block text-xs font-bold text-blue-400 mb-2">PERMISOS DE ACCESO:</label>
+              <div class="space-y-1 text-xs">
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_monitoreo" checked> Monitoreo en Vivo</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_sucursales"> Sucursales</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_repartidores"> Repartidores</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_motos"> Motos & Mantenimiento</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_pagos"> Pagos & Servicios</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_usuarios"> Usuarios & Permisos</label>
               </div>
+            </div>
 
-              <button onclick="guardarUsuarioSistema()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+            <div class="flex gap-2 pt-2">
+              <button id="btnGuardarUsuario" onclick="guardarUsuarioSistema()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition shadow">
                 Guardar Usuario
+              </button>
+              <button id="btnCancelarEdicionUser" onclick="cancelarEdicionUsuario()" class="hidden w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-2.5 rounded-lg transition text-xs">
+                Cancelar
               </button>
             </div>
           </div>
+        </div>
 
-          <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-            <h2 class="text-lg font-bold text-white mb-4">⚙️ Usuarios Registrados en el Sistema</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-sm">
-                <thead>
-                  <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                    <th class="p-3">USUARIO</th>
-                    <th class="p-3">NOMBRE COMPLETO</th>
-                    <th class="p-3">PUESTO / DEPTO</th>
-                    <th class="p-3">SUCURSAL</th>
-                    <th class="p-3">TELÉFONO</th>
-                    <th class="p-3">ACCIÓN</th>
-                  </tr>
-                </thead>
-                <tbody id="tablaUsuariosSistema" class="divide-y divide-slate-700/50"></tbody>
-              </table>
-            </div>
+        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+          <h2 class="text-lg font-bold text-white mb-4">⚙️ Usuarios Registrados en el Sistema</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3">USUARIO</th>
+                  <th class="p-3">NOMBRE COMPLETO</th>
+                  <th class="p-3">PUESTO / DEPTO</th>
+                  <th class="p-3">SUCURSAL</th>
+                  <th class="p-3">TELÉFONO</th>
+                  <th class="p-3">ACCIÓN</th>
+                </tr>
+              </thead>
+              <tbody id="tablaUsuariosSistema" class="divide-y divide-slate-700/50"></tbody>
+            </table>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
     </main>
 
@@ -1078,30 +1084,91 @@
       }
     }
 
-    // USUARIOS SISTEMA
+// USUARIOS SISTEMA (CON EDICIÓN Y BORRADO COMPLETO)
+    let idUsuarioEditando = null;
+    let usuariosSistemaGlobal = [];
+
     async function cargarUsuariosSistema() {
       try {
         const res = await fetch(`${API_URL}/usuarios-sistema`);
-        const users = await res.json();
+        usuariosSistemaGlobal = await res.json();
         const tbody = document.getElementById('tablaUsuariosSistema');
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        users.forEach(u => {
+        usuariosSistemaGlobal.forEach(u => {
           tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
+            <tr class="hover:bg-slate-800/40 border-b border-slate-800">
               <td class="p-3 font-bold text-white">${u.usuario}</td>
               <td class="p-3 text-slate-200">${u.nombre_completo}</td>
               <td class="p-3 text-xs text-slate-400">${u.puesto || '-'} (${u.departamento || '-'})</td>
               <td class="p-3 text-slate-300">${u.sucursal_nombre || 'Matriz / Todas'}</td>
               <td class="p-3 text-slate-400">${u.telefono || '-'}</td>
               <td class="p-3">
-                <button onclick="eliminarUsuarioSistema(${u.id_usuario_sys})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="prepararEditarUsuario(${u.id_usuario_sys})" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition font-semibold">
+                    ✏️ Editar
+                  </button>
+                  <button onclick="eliminarUsuarioSistema(${u.id_usuario_sys})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition font-semibold">
+                    🗑️ Eliminar
+                  </button>
+                </div>
               </td>
             </tr>
           `;
         });
       } catch (e) {}
+    }
+
+    function prepararEditarUsuario(id) {
+      const u = usuariosSistemaGlobal.find(item => item.id_usuario_sys == id);
+      if (!u) return;
+
+      idUsuarioEditando = u.id_usuario_sys;
+      document.getElementById('tituloFormUsuario').innerText = '✏️ Editar Usuario';
+      document.getElementById('btnGuardarUsuario').innerText = 'Actualizar Usuario';
+      document.getElementById('btnCancelarEdicionUser').classList.remove('hidden');
+      document.getElementById('hintPassword').classList.remove('hidden');
+
+      document.getElementById('userSucursal').value = u.id_sucursal || '';
+      document.getElementById('userNombre').value = u.nombre_completo || '';
+      document.getElementById('userUsername').value = u.usuario || '';
+      document.getElementById('userUsername').disabled = true; // El nombre de usuario no se modifica
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPuesto').value = u.puesto || '';
+      document.getElementById('userDepto').value = u.departamento || '';
+      document.getElementById('userTelefono').value = u.telefono || '';
+
+      const p = u.permisos || {};
+      document.getElementById('perm_monitoreo').checked = !!p.monitoreo?.ver;
+      document.getElementById('perm_sucursales').checked = !!p.sucursales?.ver;
+      document.getElementById('perm_repartidores').checked = !!p.repartidores?.ver;
+      document.getElementById('perm_motos').checked = !!p.motos?.ver;
+      document.getElementById('perm_pagos').checked = !!p.pagos?.ver;
+      document.getElementById('perm_usuarios').checked = !!p.usuarios?.ver;
+    }
+
+    function cancelarEdicionUsuario() {
+      idUsuarioEditando = null;
+      document.getElementById('tituloFormUsuario').innerText = '➕ Registrar Nuevo Usuario';
+      document.getElementById('btnGuardarUsuario').innerText = 'Guardar Usuario';
+      document.getElementById('btnCancelarEdicionUser').classList.add('hidden');
+      document.getElementById('hintPassword').classList.add('hidden');
+
+      document.getElementById('userUsername').disabled = false;
+      document.getElementById('userNombre').value = '';
+      document.getElementById('userUsername').value = '';
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPuesto').value = '';
+      document.getElementById('userDepto').value = '';
+      document.getElementById('userTelefono').value = '';
+
+      document.getElementById('perm_monitoreo').checked = true;
+      document.getElementById('perm_sucursales').checked = false;
+      document.getElementById('perm_repartidores').checked = false;
+      document.getElementById('perm_motos').checked = false;
+      document.getElementById('perm_pagos').checked = false;
+      document.getElementById('perm_usuarios').checked = false;
     }
 
     async function guardarUsuarioSistema() {
@@ -1126,35 +1193,59 @@
         usuario_operador: usuarioSesion ? usuarioSesion.usuario : 'Admin'
       };
 
-      if (!payload.nombre_completo || !payload.usuario || !payload.password) {
-        return alert('Nombre, Usuario y Contraseña son obligatorios.');
-      }
+      if (!idUsuarioEditando) {
+        // MODO CREACIÓN
+        if (!payload.nombre_completo || !payload.usuario || !payload.password) {
+          return alert('Nombre, Usuario y Contraseña son obligatorios.');
+        }
 
-      const res = await fetch(`${API_URL}/usuarios-sistema`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        const res = await fetch(`${API_URL}/usuarios-sistema`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-      if (res.ok) {
-        alert('Usuario registrado con éxito.');
-        document.getElementById('userNombre').value = '';
-        document.getElementById('userUsername').value = '';
-        document.getElementById('userPassword').value = '';
-        document.getElementById('userPuesto').value = '';
-        document.getElementById('userDepto').value = '';
-        document.getElementById('userTelefono').value = '';
-        cargarUsuariosSistema();
+        if (res.ok) {
+          alert('Usuario registrado con éxito.');
+          cancelarEdicionUsuario();
+          cargarUsuariosSistema();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Error al guardar el usuario.');
+        }
       } else {
-        const err = await res.json();
-        alert(err.error || 'Error al guardar el usuario.');
+        // MODO EDICIÓN
+        if (!payload.nombre_completo) {
+          return alert('El nombre completo es obligatorio.');
+        }
+
+        const res = await fetch(`${API_URL}/usuarios-sistema/${idUsuarioEditando}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          alert('Usuario actualizado con éxito.');
+          cancelarEdicionUsuario();
+          cargarUsuariosSistema();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Error al actualizar el usuario.');
+        }
       }
     }
 
     async function eliminarUsuarioSistema(id) {
-      if (!confirm('¿Seguro que deseas desactivar este usuario?')) return;
-      await fetch(`${API_URL}/usuarios-sistema/${id}`, { method: 'DELETE' });
-      cargarUsuariosSistema();
+      if (!confirm('¿Seguro que deseas eliminar definitivamente este usuario?')) return;
+      const res = await fetch(`${API_URL}/usuarios-sistema/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Usuario eliminado correctamente.');
+        cancelarEdicionUsuario();
+        cargarUsuariosSistema();
+      } else {
+        alert('Error al eliminar el usuario.');
+      }
     }
 
     // Intervalo de actualización automática
