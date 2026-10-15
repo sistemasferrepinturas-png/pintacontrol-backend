@@ -4,10 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PintaControl Express - Panel Administrador</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+  <!-- VISTA DE LOGIN -->
+  <div id="vistaLogin" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="text-4xl">🎨</span>
+        <h2 class="text-2xl font-bold text-white mt-2">Ferrepinturas de Tuxtla</h2>
+        <p class="text-xs text-slate-400">PintaControl Express - Iniciar Sesión</p>
+      </div>
+      <form onsubmit="ejecutarLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
+          <input type="text" id="loginUsuario" required placeholder="Ej. FerreAdmin" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg">
+          Ingresar al Sistema
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- ENCABEZADO -->
   <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
@@ -18,26 +42,36 @@
       <p class="text-xs text-slate-400">Sistema Multisucursal de Control de Flota y Entregas</p>
     </div>
     <div class="flex items-center gap-4 mt-2 sm:mt-0">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema en línea
-      </span>
+      <div class="text-right">
+        <p id="lblUsuarioLogueado" class="text-sm font-bold text-slate-200">Cargando...</p>
+        <p id="lblRolLogueado" class="text-xs text-blue-400">Puesto</p>
+      </div>
+      <button onclick="cerrarSesion()" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs hover:bg-red-500 hover:text-white transition font-semibold">
+        🚪 Salir
+      </button>
     </div>
   </header>
 
   <!-- NAVEGACIÓN -->
   <nav class="bg-slate-900 border-b border-slate-800 px-6">
-    <div class="flex gap-8 overflow-x-auto">
+    <div id="contenedorPestanas" class="flex gap-6 overflow-x-auto">
       <button id="tab-monitoreo" onclick="cambiarPestana('monitoreo')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-blue-400 text-blue-400">
         📊 Monitoreo en Vivo
       </button>
-      <button id="tab-sucursales" onclick="cambiarPestana('sucursales')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+      <button id="tab-sucursales" onclick="cambiarPestana('sucursales')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
         🏢 Sucursales
       </button>
-      <button id="tab-repartidores" onclick="cambiarPestana('repartidores')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+      <button id="tab-repartidores" onclick="cambiarPestana('repartidores')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
         👥 Repartidores
       </button>
-      <button id="tab-motos" onclick="cambiarPestana('motos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400 hover:text-slate-200">
+      <button id="tab-motos" onclick="cambiarPestana('motos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
         🏍️ Motos & Mantenimiento
+      </button>
+      <button id="tab-pagos" onclick="cambiarPestana('pagos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+        💳 Pagos & Servicios
+      </button>
+      <button id="tab-usuarios" onclick="cambiarPestana('usuarios')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+        ⚙️ Usuarios & Permisos
       </button>
     </div>
   </nav>
@@ -45,7 +79,7 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main class="p-6 max-w-7xl mx-auto">
 
-    <!-- PESTAÑA 1: MONITOREO -->
+    <!-- 1. MONITOREO -->
     <section id="sec-monitoreo" class="space-y-6">
       <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex flex-wrap gap-4 justify-between items-center">
         <div class="flex flex-wrap gap-4 items-center">
@@ -58,23 +92,21 @@
             <input type="date" id="filtroFechaFin" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
           </div>
           <div class="flex gap-2 mt-5">
-            <button onclick="cargarMonitoreo()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1.5 shadow">
+            <button onclick="cargarMonitoreo()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition shadow">
               🔍 Filtrar
             </button>
-            <button onclick="cargarMonitoreo()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center gap-1.5 border border-slate-600 shadow">
+            <button onclick="cargarMonitoreo()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-4 py-1.5 rounded-lg text-sm transition border border-slate-600 shadow">
               🔄 Actualizar
             </button>
           </div>
         </div>
 
-        <div class="flex gap-3 mt-2 sm:mt-0">
-          <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow">
-            📄 Exportar Excel
-          </button>
-        </div>
+        <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition shadow">
+          📄 Exportar Excel
+        </button>
       </div>
 
-      <!-- TARJETAS DE MÉTRICAS -->
+      <!-- TARJETAS -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <p class="text-xs text-slate-400 font-semibold uppercase">TOTAL RECORRIDOS</p>
@@ -94,7 +126,7 @@
         </div>
       </div>
 
-      <!-- TABLA DE MONITOREO -->
+      <!-- TABLA MONITOREO -->
       <div class="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
         <div class="p-4 border-b border-slate-700 flex justify-between items-center">
           <h2 class="font-bold text-lg text-white">Registro de Recorridos en Tiempo Real</h2>
@@ -126,7 +158,7 @@
                 <th class="p-3">ESTADO</th>
                 <th class="p-3">INICIO</th>
                 <th class="p-3">LLEGADA</th>
-                <th class="p-3">NOTAS / OBSERVACIONES</th>
+                <th class="p-3">NOTAS</th>
               </tr>
             </thead>
             <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
@@ -135,22 +167,22 @@
       </div>
     </section>
 
-    <!-- PESTAÑA 2: SUCURSALES -->
+    <!-- 2. SUCURSALES -->
     <section id="sec-sucursales" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
         <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nueva Sucursal</h2>
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE:</label>
-            <input type="text" id="sucNombre" placeholder="Ej. Sucursal Laguitos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="sucNombre" placeholder="Ej. Sucursal Laguitos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">DIRECCIÓN:</label>
-            <input type="text" id="sucDireccion" placeholder="Ej. Av. Central #123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="sucDireccion" placeholder="Ej. Av. Central #123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
-            <input type="text" id="sucTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="sucTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <button onclick="guardarSucursal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
             Guardar Sucursal
@@ -177,26 +209,26 @@
       </div>
     </section>
 
-    <!-- PESTAÑA 3: REPARTIDORES -->
+    <!-- 3. REPARTIDORES -->
     <section id="sec-repartidores" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
         <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Repartidor</h2>
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
-            <input type="text" id="repNombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="repNombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
-            <select id="repSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+            <select id="repSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
-            <input type="text" id="repTelefono" placeholder="Ej. 9619876543" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="repTelefono" placeholder="Ej. 9619876543" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">PIN DE ACCESO (4 DÍGITOS):</label>
-            <input type="text" id="repPin" maxlength="4" placeholder="Ej. 1234" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="repPin" maxlength="4" placeholder="Ej. 1234" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <button onclick="guardarRepartidor()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
             Guardar Repartidor
@@ -225,26 +257,26 @@
       </div>
     </section>
 
-    <!-- PESTAÑA 4: MOTOS & MANTENIMIENTO -->
+    <!-- 4. MOTOS -->
     <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
         <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
         <div class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
-            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
-            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
-            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
-            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
           </div>
           <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
             Guardar Moto
@@ -272,39 +304,256 @@
       </div>
     </section>
 
+    <!-- 5. PAGOS & SERVICIOS -->
+    <section id="sec-pagos" class="hidden space-y-6">
+      <div id="alertaVencimientos" class="hidden bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-300 text-sm font-semibold flex items-center gap-3">
+        <span>⚠️ ATENCIÓN:</span>
+        <span id="textoAlertaVencimientos">Tienes servicios con vencimiento próximo en los siguientes 6 días.</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Servicio / Pago</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
+              <select id="pagoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">TIPO DE SERVICIO:</label>
+              <select id="pagoTipo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                <option value="Internet">Internet / Paquetes</option>
+                <option value="Luz">Luz (CFE)</option>
+                <option value="Agua">Agua Potable</option>
+                <option value="Renta">Renta de Local</option>
+                <option value="Otro">Otro Servicio</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR / DETALLE:</label>
+              <input type="text" id="pagoProveedor" placeholder="Ej. Telmex 100M - Paquete Infinitum" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">MONTO ESTIMADO ($):</label>
+              <input type="number" id="pagoMonto" placeholder="Ej. 599.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PERIODICIDAD:</label>
+              <select id="pagoPeriodicidad" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                <option value="MENSUAL">Mensual</option>
+                <option value="BIMENSUAL">Bimensual</option>
+                <option value="ANUAL">Anual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PRÓXIMA FECHA DE PAGO:</label>
+              <input type="date" id="pagoFecha" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <button onclick="guardarPagoServicio()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+              Guardar Servicio
+            </button>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+          <h2 class="text-lg font-bold text-white mb-4">💳 Calendario y Vencimientos de Servicios</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3">SUCURSAL</th>
+                  <th class="p-3">SERVICIO</th>
+                  <th class="p-3">MONTO</th>
+                  <th class="p-3">PERIODICIDAD</th>
+                  <th class="p-3">PRÓX. PAGO</th>
+                  <th class="p-3">ESTADO / DÍAS</th>
+                  <th class="p-3">ACCIÓN</th>
+                </tr>
+              </thead>
+              <tbody id="tablaPagos" class="divide-y divide-slate-700/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. USUARIOS & PERMISOS -->
+    <section id="sec-usuarios" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nuevo Usuario</h2>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
+              <select id="userSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
+              <input type="text" id="userNombre" placeholder="Ej. Ana María López" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
+              <input type="text" id="userUsername" placeholder="Ej. analopez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
+              <input type="password" id="userPassword" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO:</label>
+              <input type="text" id="userPuesto" placeholder="Ej. General de RH" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">DEPARTAMENTO:</label>
+              <input type="text" id="userDepto" placeholder="Ej. Recursos Humanos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO DE CONTACTO:</label>
+              <input type="text" id="userTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+
+            <div class="border-t border-slate-700 pt-3">
+              <label class="block text-xs font-bold text-blue-400 mb-2">PERMISOS DE ACCESO:</label>
+              <div class="space-y-1 text-xs">
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_monitoreo" checked> Monitoreo en Vivo</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_sucursales"> Sucursales</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_repartidores"> Repartidores</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_motos"> Motos & Mantenimiento</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_pagos"> Pagos & Servicios</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="perm_usuarios"> Usuarios & Permisos</label>
+              </div>
+            </div>
+
+            <button onclick="guardarUsuarioSistema()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+              Guardar Usuario
+            </button>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+          <h2 class="text-lg font-bold text-white mb-4">⚙️ Usuarios Registrados en el Sistema</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3">USUARIO</th>
+                  <th class="p-3">NOMBRE COMPLETO</th>
+                  <th class="p-3">PUESTO / DEPTO</th>
+                  <th class="p-3">SUCURSAL</th>
+                  <th class="p-3">TELÉFONO</th>
+                  <th class="p-3">ACCIÓN</th>
+                </tr>
+              </thead>
+              <tbody id="tablaUsuariosSistema" class="divide-y divide-slate-700/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script>
-    // URL PÚBLICA EN RENDER
     const API_URL = 'https://pintacontrol-backend.onrender.com/api';
 
     let datosMonitoreoGlobal = [];
     let listaSucursalesGlobal = [];
+    let usuarioSesion = JSON.parse(localStorage.getItem('pintaControlUser')) || null;
 
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('filtroFechaInicio').value = hoy;
     document.getElementById('filtroFechaFin').value = hoy;
 
+    // CONTROL DE SESIÓN Y LOGIN
+    window.onload = () => {
+      if (!usuarioSesion) {
+        document.getElementById('vistaLogin').classList.remove('hidden');
+      } else {
+        document.getElementById('vistaLogin').classList.add('hidden');
+        configurarInterfazUsuario();
+      }
+    };
+
+    async function ejecutarLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsuario').value;
+      const p = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario: u, password: p })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          usuarioSesion = data.usuario;
+          localStorage.setItem('pintaControlUser', JSON.stringify(usuarioSesion));
+          document.getElementById('vistaLogin').classList.add('hidden');
+          configurarInterfazUsuario();
+        } else {
+          alert(data.error || 'Error al iniciar sesión.');
+        }
+      } catch (err) {
+        alert('Error al conectar con el servidor.');
+      }
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem('pintaControlUser');
+      window.location.reload();
+    }
+
+    function configurarInterfazUsuario() {
+      document.getElementById('lblUsuarioLogueado').innerText = usuarioSesion.nombre_completo;
+      document.getElementById('lblRolLogueado').innerText = `${usuarioSesion.puesto || 'Usuario'} (${usuarioSesion.sucursal || 'Todas'})`;
+
+      const p = usuarioSesion.permisos || {};
+      if (!usuarioSesion.es_admin_supremo) {
+        if (!p.sucursales?.ver) document.getElementById('tab-sucursales').style.display = 'none';
+        if (!p.repartidores?.ver) document.getElementById('tab-repartidores').style.display = 'none';
+        if (!p.motos?.ver) document.getElementById('tab-motos').style.display = 'none';
+        if (!p.pagos?.ver) document.getElementById('tab-pagos').style.display = 'none';
+        if (!p.usuarios?.ver) document.getElementById('tab-usuarios').style.display = 'none';
+      }
+
+      cargarMonitoreo();
+      cargarSucursales();
+      cargarRepartidores();
+      cargarMotos();
+      cargarPagosServicios();
+      cargarUsuariosSistema();
+    }
+
     function cambiarPestana(pestana) {
-      ['monitoreo', 'sucursales', 'repartidores', 'motos'].forEach(p => {
-        document.getElementById(`sec-${p}`).classList.add('hidden');
+      ['monitoreo', 'sucursales', 'repartidores', 'motos', 'pagos', 'usuarios'].forEach(p => {
+        const sec = document.getElementById(`sec-${p}`);
+        if (sec) sec.classList.add('hidden');
         const tabBtn = document.getElementById(`tab-${p}`);
-        tabBtn.classList.remove('text-blue-400', 'border-b-2', 'border-blue-400');
-        tabBtn.classList.add('text-slate-400');
+        if (tabBtn) {
+          tabBtn.classList.remove('text-blue-400', 'border-b-2', 'border-blue-400');
+          tabBtn.classList.add('text-slate-400');
+        }
       });
 
-      document.getElementById(`sec-${pestana}`).classList.remove('hidden');
+      const targetSec = document.getElementById(`sec-${pestana}`);
+      if (targetSec) targetSec.classList.remove('hidden');
+      
       const activeTab = document.getElementById(`tab-${pestana}`);
-      activeTab.classList.remove('text-slate-400');
-      activeTab.classList.add('text-blue-400', 'border-b-2', 'border-blue-400');
+      if (activeTab) {
+        activeTab.classList.remove('text-slate-400');
+        activeTab.classList.add('text-blue-400', 'border-b-2', 'border-blue-400');
+      }
 
       if (pestana === 'monitoreo') cargarMonitoreo();
       if (pestana === 'sucursales') cargarSucursales();
       if (pestana === 'repartidores') cargarRepartidores();
       if (pestana === 'motos') cargarMotos();
+      if (pestana === 'pagos') cargarPagosServicios();
+      if (pestana === 'usuarios') cargarUsuariosSistema();
     }
 
-    // AUXILIAR: Generar opciones del selector de sucursales
     function generarOpcionesSucursales(idSucursalActual) {
       if (!listaSucursalesGlobal || listaSucursalesGlobal.length === 0) {
         return `<option value="">Sin sucursales</option>`;
@@ -316,7 +565,7 @@
       `).join('');
     }
 
-    // 1. MONITOREO
+    // MONITOREO
     async function cargarMonitoreo() {
       try {
         const fInicio = document.getElementById('filtroFechaInicio').value;
@@ -329,18 +578,26 @@
         datosMonitoreoGlobal = await res.json();
         await cargarComboSucursales();
         aplicarFiltrosMonitoreo();
-      } catch (e) { console.error('Error monitoreo:', e); }
+      } catch (e) {}
     }
 
     async function cargarComboSucursales() {
       try {
         const res = await fetch(`${API_URL}/sucursales`);
         listaSucursalesGlobal = await res.json();
+        
         const sel = document.getElementById('filtroSucursal');
-        sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
-        listaSucursalesGlobal.forEach(s => {
-          sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
-        });
+        if (sel) {
+          sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
+          listaSucursalesGlobal.forEach(s => {
+            sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+          });
+        }
+
+        const comboPagos = document.getElementById('pagoSucursal');
+        const comboUser = document.getElementById('userSucursal');
+        if (comboPagos) comboPagos.innerHTML = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+        if (comboUser) comboUser.innerHTML = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
       } catch (e) {}
     }
 
@@ -357,85 +614,81 @@
       renderizarTablaMonitoreo(filtrados);
       actualizarMetricas(filtrados);
     }
-// TABLA DE MONITOREO
 
-function renderizarTablaMonitoreo(datos) {
-  const tbody = document.getElementById('tablaMonitoreo');
-  tbody.innerHTML = '';
+    function renderizarTablaMonitoreo(datos) {
+      const tbody = document.getElementById('tablaMonitoreo');
+      if (!tbody) return;
+      tbody.innerHTML = '';
 
-  if (!datos || datos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="14" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
-    return;
-  }
+      if (!datos || datos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="14" class="p-4 text-center text-slate-500">No hay recorridos registrados en este rango de fechas.</td></tr>`;
+        return;
+      }
 
-  datos.forEach(v => {
-    const badgeClass = v.estado_viaje === 'EN_PROCESO' 
-      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
-    const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
-    const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'En camino...';
+      datos.forEach(v => {
+        const badgeClass = v.estado_viaje === 'EN_PROCESO' 
+          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        const notaTexto = v.notas ? `<span class="text-xs text-amber-300 italic">"${v.notas}"</span>` : `<span class="text-xs text-slate-500">-</span>`;
+        const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+        const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'En camino...';
 
-    // Botones para ver fotos sin saturar la vista
-    const btnInicio = v.foto_odometro_inicio 
-      ? `<button onclick="verFotoBase64('${v.id_viaje}', 'inicio')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-xs hover:bg-blue-500 hover:text-white transition">📸 Inicio</button>` 
-      : '<span class="text-xs text-slate-500">-</span>';
+        const btnInicio = v.foto_odometro_inicio 
+          ? `<button onclick="verFotoBase64('${v.id_viaje}', 'inicio')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-xs hover:bg-blue-500 hover:text-white transition">📸 Inicio</button>` 
+          : '<span class="text-xs text-slate-500">-</span>';
 
-    const btnFin = v.foto_odometro_fin 
-      ? `<button onclick="verFotoBase64('${v.id_viaje}', 'fin')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-xs hover:bg-emerald-500 hover:text-white transition">📸 Fin</button>` 
-      : '<span class="text-xs text-slate-500">-</span>';
+        const btnFin = v.foto_odometro_fin 
+          ? `<button onclick="verFotoBase64('${v.id_viaje}', 'fin')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-xs hover:bg-emerald-500 hover:text-white transition">📸 Fin</button>` 
+          : '<span class="text-xs text-slate-500">-</span>';
 
-    tbody.innerHTML += `
-      <tr class="hover:bg-slate-800/40 transition">
-        <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
-        <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
-        <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
-        <td class="p-3 text-slate-200">${v.direccion_destino}</td>
-        <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
-        <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
-        <td class="p-3 text-slate-400">${v.km_inicial} km</td>
-        <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
-        <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
-        <td class="p-3 flex gap-1 items-center">${btnInicio} ${btnFin}</td>
-        <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
-        <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
-        <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
-        <td class="p-3">${notaTexto}</td>
-      </tr>
-    `;
-  });
-}
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="p-3 font-semibold text-white">#${v.numero_viaje_del_dia}</td>
+            <td class="p-3 font-medium text-slate-200">${v.repartidor || 'N/A'}</td>
+            <td class="p-3 text-slate-400">${v.sucursal || 'Matriz'}</td>
+            <td class="p-3 text-slate-200">${v.direccion_destino}</td>
+            <td class="p-3 font-semibold text-slate-300">${v.forma_pago_esperada}</td>
+            <td class="p-3 text-slate-300">$${v.fondo_cambio_recibido}</td>
+            <td class="p-3 text-slate-400">${v.km_inicial} km</td>
+            <td class="p-3 text-slate-400">${v.km_final ? v.km_final + ' km' : 'En camino'}</td>
+            <td class="p-3 font-bold text-blue-400">${v.km_recorridos ? v.km_recorridos + ' km' : '-'}</td>
+            <td class="p-3 flex gap-1 items-center">${btnInicio} ${btnFin}</td>
+            <td class="p-3"><span class="px-2.5 py-1 text-xs rounded-full border ${badgeClass}">${v.estado_viaje}</span></td>
+            <td class="p-3 text-xs text-slate-400">${horaInicio}</td>
+            <td class="p-3 text-xs text-emerald-400 font-medium">${horaFin}</td>
+            <td class="p-3">${notaTexto}</td>
+          </tr>
+        `;
+      });
+    }
 
-// Función para abrir la foto en una ventana nueva limpia
-    
-function verFotoBase64(idViaje, tipo) {
-  const viaje = datosMonitoreoGlobal.find(d => d.id_viaje == idViaje);
-  if (!viaje) return alert('No se encontraron los datos del viaje.');
+    function verFotoBase64(idViaje, tipo) {
+      const viaje = datosMonitoreoGlobal.find(d => d.id_viaje == idViaje);
+      if (!viaje) return alert('No se encontraron los datos del viaje.');
 
-  const foto = tipo === 'inicio' ? viaje.foto_odometro_inicio : viaje.foto_odometro_fin;
-  if (!foto) return alert('No hay foto registrada.');
+      const foto = tipo === 'inicio' ? viaje.foto_odometro_inicio : viaje.foto_odometro_fin;
+      if (!foto) return alert('No hay foto registrada.');
 
-  const src = foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
+      const src = foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
 
-  const win = window.open("", "_blank");
-  win.document.write(`
-    <html>
-      <head>
-        <title>Foto Odómetro - Viaje #${viaje.numero_viaje_del_dia}</title>
-        <style>
-          body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-          h3 { color: #38bdf8; margin-bottom: 10px; }
-          img { max-width: 90%; max-height: 80vh; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        </style>
-      </head>
-      <body>
-        <h3>Evidencia Odómetro (${tipo.toUpperCase()}) - Viaje #${viaje.numero_viaje_del_dia}</h3>
-        <img src="${src}" alt="Foto Odómetro" />
-      </body>
-    </html>
-  `);
-}
-    
+      const win = window.open("", "_blank");
+      win.document.write(`
+        <html>
+          <head>
+            <title>Foto Odómetro - Viaje #${viaje.numero_viaje_del_dia}</title>
+            <style>
+              body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+              h3 { color: #38bdf8; margin-bottom: 10px; }
+              img { max-width: 90%; max-height: 80vh; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            </style>
+          </head>
+          <body>
+            <h3>Evidencia Odómetro (${tipo.toUpperCase()}) - Viaje #${viaje.numero_viaje_del_dia}</h3>
+            <img src="${src}" alt="Foto Odómetro" />
+          </body>
+        </html>
+      `);
+    }
 
     function actualizarMetricas(datos) {
       document.getElementById('mTotalViajes').innerText = datos.length;
@@ -454,7 +707,7 @@ function verFotoBase64(idViaje, tipo) {
       XLSX.writeFile(wb, `PintaControl_Monitoreo_${hoy}.xlsx`);
     }
 
-    // 2. SUCURSALES
+    // SUCURSALES
     async function cargarSucursales() {
       try {
         const res = await fetch(`${API_URL}/sucursales`);
@@ -485,7 +738,7 @@ function verFotoBase64(idViaje, tipo) {
         if (selectRep) {
           selectRep.innerHTML = lista.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
         }
-      } catch (e) { alert('Error al cargar sucursales.'); }
+      } catch (e) {}
     }
 
     async function guardarSucursal() {
@@ -507,8 +760,6 @@ function verFotoBase64(idViaje, tipo) {
         document.getElementById('sucDireccion').value = '';
         document.getElementById('sucTelefono').value = '';
         cargarSucursales();
-      } else {
-        alert('Error al guardar la sucursal.');
       }
     }
 
@@ -518,22 +769,15 @@ function verFotoBase64(idViaje, tipo) {
       cargarSucursales();
     }
 
-    // 3. CARGAR REPARTIDORES
+    // REPARTIDORES
     async function cargarRepartidores() {
       try {
         const res = await fetch(`${API_URL}/repartidores`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const repartidores = await res.json();
-        
         const tbody = document.getElementById('tablaRepartidores');
         if (!tbody) return;
 
         tbody.innerHTML = '';
-
-        if (!Array.isArray(repartidores) || repartidores.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No hay repartidores registrados.</td></tr>`;
-          return;
-        }
 
         repartidores.forEach(r => {
           const badgeEstatus = r.estatus === 'EN_RECORRIDO'
@@ -555,7 +799,7 @@ function verFotoBase64(idViaje, tipo) {
               <td class="p-3 font-mono text-amber-400">🔑 ${r.pin}</td>
               <td class="p-3 text-slate-300">${r.sucursal || 'Sin asignar'}</td>
               <td class="p-3">
-                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-800 text-white text-xs p-1.5 rounded border border-slate-700 focus:outline-none">
+                <select onchange="reasignarSucursalRepartidor(${r.id_usuario}, this.value)" class="bg-slate-800 text-white text-xs p-1.5 rounded border border-slate-700">
                   ${generarOpcionesSucursales(r.id_sucursal)}
                 </select>
               </td>
@@ -567,9 +811,7 @@ function verFotoBase64(idViaje, tipo) {
             </tr>
           `;
         });
-      } catch (e) {
-        console.error("Error al cargar repartidores:", e);
-      }
+      } catch (e) {}
     }
 
     async function guardarRepartidor() {
@@ -579,7 +821,6 @@ function verFotoBase64(idViaje, tipo) {
       const pin = document.getElementById('repPin').value;
 
       if (!nombre) return alert('Ingresa el nombre del repartidor.');
-      if (pin && pin.length !== 4) return alert('El PIN debe ser de 4 dígitos.');
 
       const res = await fetch(`${API_URL}/repartidores`, {
         method: 'POST',
@@ -597,83 +838,46 @@ function verFotoBase64(idViaje, tipo) {
     }
 
     async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
-      try {
-        const res = await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_sucursal: parseInt(id_sucursal, 10) })
-        });
-        
-        if (res.ok) {
-          alert('¡Sucursal del repartidor reasignada correctamente!');
-          cargarRepartidores();
-        } else {
-          alert('Error al reasignar la sucursal.');
-        }
-      } catch (e) {
-        alert('Error al reasignar sucursal.');
-      }
+      await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_sucursal: parseInt(id_sucursal, 10) })
+      });
+      cargarRepartidores();
     }
 
     async function editarRepartidor(id_usuario, nombreActual, telefonoActual) {
-      const nuevoNombre = prompt('PASO 1 DE 2:\nIngresa el nombre completo del repartidor:', nombreActual);
-      if (nuevoNombre === null || nuevoNombre.trim() === '') return;
+      const nuevoNombre = prompt('Ingresa el nuevo nombre:', nombreActual);
+      if (!nuevoNombre) return;
+      const nuevoTelefono = prompt('Ingresa el teléfono:', telefonoActual);
 
-      const nuevoTelefono = prompt('PASO 2 DE 2:\nIngresa el número de teléfono:', telefonoActual);
-      if (nuevoTelefono === null) return;
-
-      try {
-        const res = await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombre: nuevoNombre.trim(), telefono: nuevoTelefono.trim() })
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          alert('¡Repartidor actualizado correctamente!');
-          cargarRepartidores();
-        } else {
-          alert(data.error || 'Error al actualizar repartidor.');
-        }
-      } catch (e) {
-        alert('Error al conectar con el servidor.');
-      }
+      await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nuevoNombre.trim(), telefono: (nuevoTelefono || '').trim() })
+      });
+      cargarRepartidores();
     }
 
     async function editarPinRepartidor(id_usuario, pinActual) {
-      const nuevoPin = prompt('Ingresa el nuevo PIN de 4 dígitos:', pinActual);
+      const nuevoPin = prompt('Nuevo PIN (4 dígitos):', pinActual);
       if (nuevoPin && nuevoPin.length === 4) {
         await fetch(`${API_URL}/repartidores/${id_usuario}/pin`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: nuevoPin })
         });
-        alert('PIN actualizado con éxito.');
         cargarRepartidores();
-      } else if (nuevoPin !== null) {
-        alert('El PIN debe constar exactamente de 4 dígitos.');
       }
     }
 
     async function eliminarRepartidor(id) {
-      if (!confirm('¿Seguro que deseas eliminar a este repartidor?')) return;
-      try {
-        const res = await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        
-        if (res.ok) {
-          alert('¡Repartidor eliminado correctamente!');
-          cargarRepartidores();
-        } else {
-          alert(data.error || 'Error al eliminar repartidor.');
-        }
-      } catch (e) {
-        alert('Error de conexión al eliminar repartidor.');
-      }
+      if (!confirm('¿Eliminar repartidor?')) return;
+      await fetch(`${API_URL}/repartidores/${id}`, { method: 'DELETE' });
+      cargarRepartidores();
     }
 
-    // 4. MOTOS
+    // MOTOS
     async function cargarMotos() {
       try {
         const [resMot, resSuc] = await Promise.all([
@@ -684,10 +888,12 @@ function verFotoBase64(idViaje, tipo) {
         const sucs = await resSuc.json();
 
         const selForm = document.getElementById('motoSucursal');
-        selForm.innerHTML = '';
-        sucs.forEach(s => selForm.innerHTML += `<option value="${s.id_sucursal}">${s.nombre}</option>`);
+        if (selForm) {
+          selForm.innerHTML = sucs.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+        }
 
         const tbody = document.getElementById('tablaMotos');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
         motos.forEach(m => {
@@ -705,62 +911,13 @@ function verFotoBase64(idViaje, tipo) {
               </td>
               <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
               <td class="p-3 flex gap-2">
-                <button onclick="editarDatosMoto(${m.id_vehiculo}, '${m.placa}', '${m.marca_modelo}')" class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded text-xs hover:bg-indigo-500 hover:text-white transition">
-                  ✏️ Moto
-                </button>
-                <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
-                  ✏️ Km
-                </button>
-                <button onclick="editarFallaMecanica(${m.id_vehiculo}, '${m.estado}', '${m.detalles_mecanicos || ''}')" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition">
-                  🛠️ Detalle
-                </button>
-                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">
-                  Eliminar
-                </button>
+                <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">✏️ Km</button>
+                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
               </td>
             </tr>
           `;
         });
       } catch (e) {}
-    }
-
-    async function editarKmMoto(id_vehiculo, kmActual) {
-      const nuevoKm = prompt('Ingresa el nuevo kilometraje actual para esta moto:', kmActual);
-      if (nuevoKm !== null && !isNaN(nuevoKm) && nuevoKm.trim() !== '') {
-        const res = await fetch(`${API_URL}/motos/${id_vehiculo}/kilometraje`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kilometraje_actual: parseInt(nuevoKm, 10) })
-        });
-
-        if (res.ok) {
-          alert('Kilometraje actualizado con éxito.');
-          cargarMotos();
-        } else {
-          alert('Error al actualizar el kilometraje.');
-        }
-      }
-    }
-
-    async function editarDatosMoto(id_vehiculo, placaActual, modeloActual) {
-      const nuevaPlaca = prompt('Ingresa la nueva Placa / Num. Económico:', placaActual);
-      if (nuevaPlaca === null || nuevaPlaca.trim() === '') return;
-
-      const nuevoModelo = prompt('Ingresa la nueva Marca / Modelo:', modeloActual);
-      if (nuevoModelo === null || nuevoModelo.trim() === '') return;
-
-      const res = await fetch(`${API_URL}/motos/${id_vehiculo}/datos`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placa: nuevaPlaca.trim(), marca_modelo: nuevoModelo.trim() })
-      });
-
-      if (res.ok) {
-        alert('Datos de la moto actualizados correctamente.');
-        cargarMotos();
-      } else {
-        alert('Error al actualizar los datos de la moto.');
-      }
     }
 
     async function guardarMoto() {
@@ -769,7 +926,7 @@ function verFotoBase64(idViaje, tipo) {
       const id_sucursal = document.getElementById('motoSucursal').value;
       const kilometraje_actual = document.getElementById('motoKm').value;
 
-      if (!placa) return alert('Ingresa la placa de la moto.');
+      if (!placa) return alert('Ingresa la placa.');
 
       const res = await fetch(`${API_URL}/motos`, {
         method: 'POST',
@@ -778,35 +935,30 @@ function verFotoBase64(idViaje, tipo) {
       });
 
       if (res.ok) {
-        alert('Moto registrada con éxito.');
-        document.getElementById('motoPlaca').value = '';
-        document.getElementById('motoModelo').value = '';
-        document.getElementById('motoKm').value = '';
+        alert('Moto registrada.');
         cargarMotos();
       }
     }
 
-    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles_mecanicos) {
-      const detalleEnviar = estado === 'DISPONIBLE' ? '' : detalles_mecanicos;
-
-      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, detalles_mecanicos: detalleEnviar })
-      });
-      cargarMotos();
-    }
-
-    async function editarFallaMecanica(id_vehiculo, estadoActual, detallePrevio) {
-      const nuevoDetalle = prompt('Ingresa los detalles o fallas mecánicas de la moto:', detallePrevio);
-      if (nuevoDetalle !== null) {
-        await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+    async function editarKmMoto(id_vehiculo, kmActual) {
+      const nuevoKm = prompt('Nuevo kilometraje actual:', kmActual);
+      if (nuevoKm !== null && !isNaN(nuevoKm)) {
+        await fetch(`${API_URL}/motos/${id_vehiculo}/kilometraje`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: estadoActual, detalles_mecanicos: nuevoDetalle })
+          body: JSON.stringify({ kilometraje_actual: parseInt(nuevoKm, 10) })
         });
         cargarMotos();
       }
+    }
+
+    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles) {
+      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado, detalles_mecanicos: detalles })
+      });
+      cargarMotos();
     }
 
     async function eliminarMoto(id) {
@@ -815,18 +967,180 @@ function verFotoBase64(idViaje, tipo) {
       cargarMotos();
     }
 
-    // CARGA INICIAL DE DATOS
-    cargarMonitoreo();
-    cargarRepartidores();
-    cargarSucursales();
-    cargarMotos();
+    // PAGOS Y SERVICIOS
+    async function cargarPagosServicios() {
+      try {
+        const res = await fetch(`${API_URL}/pagos-servicios`);
+        const pagos = await res.json();
+        const tbody = document.getElementById('tablaPagos');
+        if (!tbody) return;
+        tbody.innerHTML = '';
 
-    // Actualización periódica en vivo cada 1 minuto
+        let proximosVencer = 0;
+
+        pagos.forEach(p => {
+          const dias = parseInt(p.dias_restantes, 10);
+          let badge = `<span class="px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${dias} días</span>`;
+          
+          if (dias <= 6) {
+            proximosVencer++;
+            badge = `<span class="px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold animate-pulse">⚠️ En ${dias} días</span>`;
+          }
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 text-slate-300">${p.sucursal_nombre}</td>
+              <td class="p-3 font-semibold text-white">${p.tipo_servicio} <span class="block text-xs font-normal text-slate-400">${p.proveedor_descripcion}</span></td>
+              <td class="p-3 font-bold text-blue-400">$${p.monto}</td>
+              <td class="p-3 text-xs text-slate-400">${p.periodicidad}</td>
+              <td class="p-3 text-slate-200">${new Date(p.proxima_fecha_pago).toLocaleDateString()}</td>
+              <td class="p-3">${badge}</td>
+              <td class="p-3">
+                <button onclick="marcarServicioPagado(${p.id_servicio})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">
+                  ✅ Pagado
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+
+        if (proximosVencer > 0) {
+          document.getElementById('alertaVencimientos').classList.remove('hidden');
+          document.getElementById('textoAlertaVencimientos').innerText = `¡Atención! Tienes ${proximosVencer} servicio(s) que vencen en 6 días o menos.`;
+        } else {
+          document.getElementById('alertaVencimientos').classList.add('hidden');
+        }
+      } catch (e) {}
+    }
+
+    async function guardarPagoServicio() {
+      const payload = {
+        id_sucursal: document.getElementById('pagoSucursal').value,
+        tipo_servicio: document.getElementById('pagoTipo').value,
+        proveedor_descripcion: document.getElementById('pagoProveedor').value,
+        monto: parseFloat(document.getElementById('pagoMonto').value || 0),
+        periodicidad: document.getElementById('pagoPeriodicidad').value,
+        proxima_fecha_pago: document.getElementById('pagoFecha').value
+      };
+
+      if (!payload.proxima_fecha_pago) return alert('Selecciona la fecha de pago.');
+
+      const res = await fetch(`${API_URL}/pagos-servicios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert('Servicio registrado correctamente.');
+        document.getElementById('pagoProveedor').value = '';
+        document.getElementById('pagoMonto').value = '';
+        cargarPagosServicios();
+      }
+    }
+
+    async function marcarServicioPagado(id) {
+      const nuevaFecha = prompt('Ingresa la nueva fecha para el próximo pago (YYYY-MM-DD):', hoy);
+      if (!nuevaFecha) return;
+
+      const res = await fetch(`${API_URL}/pagos-servicios/${id}/marcar-pagado`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nueva_fecha_pago: nuevaFecha })
+      });
+
+      if (res.ok) {
+        alert('Pago registrado y fecha actualizada.');
+        cargarPagosServicios();
+      }
+    }
+
+    // USUARIOS SISTEMA
+    async function cargarUsuariosSistema() {
+      try {
+        const res = await fetch(`${API_URL}/usuarios-sistema`);
+        const users = await res.json();
+        const tbody = document.getElementById('tablaUsuariosSistema');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        users.forEach(u => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-bold text-white">${u.usuario}</td>
+              <td class="p-3 text-slate-200">${u.nombre_completo}</td>
+              <td class="p-3 text-xs text-slate-400">${u.puesto || '-'} (${u.departamento || '-'})</td>
+              <td class="p-3 text-slate-300">${u.sucursal_nombre || 'Matriz / Todas'}</td>
+              <td class="p-3 text-slate-400">${u.telefono || '-'}</td>
+              <td class="p-3">
+                <button onclick="eliminarUsuarioSistema(${u.id_usuario_sys})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {}
+    }
+
+    async function guardarUsuarioSistema() {
+      const permisos = {
+        monitoreo: { ver: document.getElementById('perm_monitoreo').checked },
+        sucursales: { ver: document.getElementById('perm_sucursales').checked },
+        repartidores: { ver: document.getElementById('perm_repartidores').checked },
+        motos: { ver: document.getElementById('perm_motos').checked },
+        pagos: { ver: document.getElementById('perm_pagos').checked },
+        usuarios: { ver: document.getElementById('perm_usuarios').checked }
+      };
+
+      const payload = {
+        id_sucursal: document.getElementById('userSucursal').value,
+        nombre_completo: document.getElementById('userNombre').value,
+        usuario: document.getElementById('userUsername').value,
+        password: document.getElementById('userPassword').value,
+        puesto: document.getElementById('userPuesto').value,
+        departamento: document.getElementById('userDepto').value,
+        telefono: document.getElementById('userTelefono').value,
+        permisos,
+        usuario_operador: usuarioSesion ? usuarioSesion.usuario : 'Admin'
+      };
+
+      if (!payload.nombre_completo || !payload.usuario || !payload.password) {
+        return alert('Nombre, Usuario y Contraseña son obligatorios.');
+      }
+
+      const res = await fetch(`${API_URL}/usuarios-sistema`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert('Usuario registrado con éxito.');
+        document.getElementById('userNombre').value = '';
+        document.getElementById('userUsername').value = '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userPuesto').value = '';
+        document.getElementById('userDepto').value = '';
+        document.getElementById('userTelefono').value = '';
+        cargarUsuariosSistema();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al guardar el usuario.');
+      }
+    }
+
+    async function eliminarUsuarioSistema(id) {
+      if (!confirm('¿Seguro que deseas desactivar este usuario?')) return;
+      await fetch(`${API_URL}/usuarios-sistema/${id}`, { method: 'DELETE' });
+      cargarUsuariosSistema();
+    }
+
+    // Intervalo de actualización automática cada 1 minuto
     setInterval(() => {
-      cargarMonitoreo();
-      cargarRepartidores();
+      if (usuarioSesion) {
+        cargarMonitoreo();
+        cargarRepartidores();
+      }
     }, 60000);
-
   </script>
 </body>
 </html>
