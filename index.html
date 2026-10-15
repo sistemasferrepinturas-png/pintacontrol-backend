@@ -4,12 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PintaControl Express - Panel Administrador</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* Estilos explícitos para asegurar visibilidad del texto en los inputs */
+    .input-login {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    .input-login:focus {
+      border-color: #2563eb !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+    }
+  </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-  <!-- VISTA DE LOGIN -->
+  <!-- PANTALLA DE LOGIN (PANTALLA LIMPIA) -->
   <div id="vistaLogin" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
       <div class="text-center mb-6">
@@ -19,439 +32,444 @@
       </div>
       <form onsubmit="ejecutarLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
-          <input type="text" id="loginUsuario" required placeholder="Ej. FerreAdmin" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500">
+          <label class="block text-xs font-semibold text-slate-300 mb-1">USUARIO:</label>
+          <input type="text" id="loginUsuario" required placeholder="Ej. FerreAdmin" class="input-login w-full rounded-lg p-3 text-sm font-medium">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
-          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500">
+          <label class="block text-xs font-semibold text-slate-300 mb-1">CONTRASEÑA:</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="input-login w-full rounded-lg p-3 text-sm font-medium">
         </div>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg">
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg mt-2">
           Ingresar al Sistema
         </button>
       </form>
     </div>
   </div>
 
-  <!-- ENCABEZADO -->
-  <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
-    <div>
-      <h1 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-        <span>🎨</span> Ferrepinturas de Tuxtla
-      </h1>
-      <p class="text-xs text-slate-400">Sistema Multisucursal de Control de Flota y Entregas</p>
-    </div>
-    <div class="flex items-center gap-4 mt-2 sm:mt-0">
-      <div class="text-right">
-        <p id="lblUsuarioLogueado" class="text-sm font-bold text-slate-200">Cargando...</p>
-        <p id="lblRolLogueado" class="text-xs text-blue-400">Puesto</p>
+  <!-- CONTENEDOR PRINCIPAL DEL SISTEMA (OCULTO HASTA INICIAR SESIÓN) -->
+  <div id="appContainer" class="hidden">
+
+    <!-- ENCABEZADO -->
+    <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
+          <span>🎨</span> Ferrepinturas de Tuxtla
+        </h1>
+        <p class="text-xs text-slate-400">Sistema Multisucursal de Control de Flota y Entregas</p>
       </div>
-      <button onclick="cerrarSesion()" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs hover:bg-red-500 hover:text-white transition font-semibold">
-        🚪 Salir
-      </button>
-    </div>
-  </header>
-
-  <!-- NAVEGACIÓN -->
-  <nav class="bg-slate-900 border-b border-slate-800 px-6">
-    <div id="contenedorPestanas" class="flex gap-6 overflow-x-auto">
-      <button id="tab-monitoreo" onclick="cambiarPestana('monitoreo')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-blue-400 text-blue-400">
-        📊 Monitoreo en Vivo
-      </button>
-      <button id="tab-sucursales" onclick="cambiarPestana('sucursales')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
-        🏢 Sucursales
-      </button>
-      <button id="tab-repartidores" onclick="cambiarPestana('repartidores')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
-        👥 Repartidores
-      </button>
-      <button id="tab-motos" onclick="cambiarPestana('motos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
-        🏍️ Motos & Mantenimiento
-      </button>
-      <button id="tab-pagos" onclick="cambiarPestana('pagos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
-        💳 Pagos & Servicios
-      </button>
-      <button id="tab-usuarios" onclick="cambiarPestana('usuarios')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
-        ⚙️ Usuarios & Permisos
-      </button>
-    </div>
-  </nav>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="p-6 max-w-7xl mx-auto">
-
-    <!-- 1. MONITOREO -->
-    <section id="sec-monitoreo" class="space-y-6">
-      <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex flex-wrap gap-4 justify-between items-center">
-        <div class="flex flex-wrap gap-4 items-center">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA INICIO:</label>
-            <input type="date" id="filtroFechaInicio" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA FIN:</label>
-            <input type="date" id="filtroFechaFin" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
-          </div>
-          <div class="flex gap-2 mt-5">
-            <button onclick="cargarMonitoreo()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition shadow">
-              🔍 Filtrar
-            </button>
-            <button onclick="cargarMonitoreo()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-4 py-1.5 rounded-lg text-sm transition border border-slate-600 shadow">
-              🔄 Actualizar
-            </button>
-          </div>
+      <div class="flex items-center gap-4 mt-2 sm:mt-0">
+        <div class="text-right">
+          <p id="lblUsuarioLogueado" class="text-sm font-bold text-slate-200">Cargando...</p>
+          <p id="lblRolLogueado" class="text-xs text-blue-400">Puesto</p>
         </div>
-
-        <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition shadow">
-          📄 Exportar Excel
+        <button onclick="cerrarSesion()" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs hover:bg-red-500 hover:text-white transition font-semibold">
+          🚪 Salir
         </button>
       </div>
+    </header>
 
-      <!-- TARJETAS -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <p class="text-xs text-slate-400 font-semibold uppercase">TOTAL RECORRIDOS</p>
-          <p id="mTotalViajes" class="text-2xl font-bold text-white mt-1">0</p>
-        </div>
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <p class="text-xs text-slate-400 font-semibold uppercase">EN PROCESO</p>
-          <p id="mEnProceso" class="text-2xl font-bold text-amber-400 mt-1">0</p>
-        </div>
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <p class="text-xs text-slate-400 font-semibold uppercase">FINALIZADOS</p>
-          <p id="mFinalizados" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
-        </div>
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <p class="text-xs text-slate-400 font-semibold uppercase">KM TOTALES RECORRIDOS</p>
-          <p id="mKmTotales" class="text-2xl font-bold text-blue-400 mt-1">0 km</p>
-        </div>
+    <!-- NAVEGACIÓN -->
+    <nav class="bg-slate-900 border-b border-slate-800 px-6">
+      <div id="contenedorPestanas" class="flex gap-6 overflow-x-auto">
+        <button id="tab-monitoreo" onclick="cambiarPestana('monitoreo')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-blue-400 text-blue-400">
+          📊 Monitoreo en Vivo
+        </button>
+        <button id="tab-sucursales" onclick="cambiarPestana('sucursales')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+          🏢 Sucursales
+        </button>
+        <button id="tab-repartidores" onclick="cambiarPestana('repartidores')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+          👥 Repartidores
+        </button>
+        <button id="tab-motos" onclick="cambiarPestana('motos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+          🏍️ Motos & Mantenimiento
+        </button>
+        <button id="tab-pagos" onclick="cambiarPestana('pagos')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+          💳 Pagos & Servicios
+        </button>
+        <button id="tab-usuarios" onclick="cambiarPestana('usuarios')" class="py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-slate-400">
+          ⚙️ Usuarios & Permisos
+        </button>
       </div>
+    </nav>
 
-      <!-- TABLA MONITOREO -->
-      <div class="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
-        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-          <h2 class="font-bold text-lg text-white">Registro de Recorridos en Tiempo Real</h2>
-          <div class="flex gap-3">
-            <select id="filtroSucursal" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
-              <option value="TODAS">Todas las Sucursales</option>
-            </select>
-            <select id="filtroEstado" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
-              <option value="TODOS">Todos los Estados</option>
-              <option value="EN_PROCESO">En Proceso</option>
-              <option value="FINALIZADO">Finalizados</option>
-            </select>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                <th class="p-3"># VIAJE</th>
-                <th class="p-3">REPARTIDOR</th>
-                <th class="p-3">SUCURSAL</th>
-                <th class="p-3">DESTINO</th>
-                <th class="p-3">PAGO</th>
-                <th class="p-3">FONDO</th>
-                <th class="p-3">KM INICIAL</th>
-                <th class="p-3">KM FINAL</th>
-                <th class="p-3">KM RECORRIDOS</th>
-                <th class="p-3">FOTOS ODÓMETRO</th>
-                <th class="p-3">ESTADO</th>
-                <th class="p-3">INICIO</th>
-                <th class="p-3">LLEGADA</th>
-                <th class="p-3">NOTAS</th>
-              </tr>
-            </thead>
-            <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="p-6 max-w-7xl mx-auto">
 
-    <!-- 2. SUCURSALES -->
-    <section id="sec-sucursales" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nueva Sucursal</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE:</label>
-            <input type="text" id="sucNombre" placeholder="Ej. Sucursal Laguitos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">DIRECCIÓN:</label>
-            <input type="text" id="sucDireccion" placeholder="Ej. Av. Central #123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
-            <input type="text" id="sucTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <button onclick="guardarSucursal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
-            Guardar Sucursal
-          </button>
-        </div>
-      </div>
-
-      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-        <h2 class="text-lg font-bold text-white mb-4">🏢 Sucursales Activas</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                <th class="p-3">ID</th>
-                <th class="p-3">NOMBRE</th>
-                <th class="p-3">DIRECCIÓN</th>
-                <th class="p-3">TELÉFONO</th>
-                <th class="p-3">ACCIÓN</th>
-              </tr>
-            </thead>
-            <tbody id="tablaSucursales" class="divide-y divide-slate-700/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. REPARTIDORES -->
-    <section id="sec-repartidores" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Repartidor</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
-            <input type="text" id="repNombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
-            <select id="repSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
-            <input type="text" id="repTelefono" placeholder="Ej. 9619876543" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">PIN DE ACCESO (4 DÍGITOS):</label>
-            <input type="text" id="repPin" maxlength="4" placeholder="Ej. 1234" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <button onclick="guardarRepartidor()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
-            Guardar Repartidor
-          </button>
-        </div>
-      </div>
-
-      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-        <h2 class="text-lg font-bold text-white mb-4">👥 Lista de Repartidores</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                <th class="p-3">REPARTIDOR</th>
-                <th class="p-3">ESTATUS</th>
-                <th class="p-3">TELÉFONO</th>
-                <th class="p-3">PIN ACCESO</th>
-                <th class="p-3">SUCURSAL ACTUAL</th>
-                <th class="p-3">CAMBIAR SUCURSAL</th>
-                <th class="p-3">ACCIÓN</th>
-              </tr>      
-            </thead>
-            <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. MOTOS -->
-    <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-        <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
-            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
-            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
-            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
-            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-          </div>
-          <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
-            Guardar Moto
-          </button>
-        </div>
-      </div>
-
-      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-        <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                <th class="p-3">MOTO</th>
-                <th class="p-3">SUCURSAL</th>
-                <th class="p-3">KM ACTUAL</th>
-                <th class="p-3">ESTADO OPERATIVO</th>
-                <th class="p-3">DETALLE / FALLA</th>
-                <th class="p-3">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5. PAGOS & SERVICIOS -->
-    <section id="sec-pagos" class="hidden space-y-6">
-      <div id="alertaVencimientos" class="hidden bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-300 text-sm font-semibold flex items-center gap-3">
-        <span>⚠️ ATENCIÓN:</span>
-        <span id="textoAlertaVencimientos">Tienes servicios con vencimiento próximo en los siguientes 6 días.</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Servicio / Pago</h2>
-          <div class="space-y-3">
+      <!-- 1. MONITOREO -->
+      <section id="sec-monitoreo" class="space-y-6">
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 flex flex-wrap gap-4 justify-between items-center">
+          <div class="flex flex-wrap gap-4 items-center">
             <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
-              <select id="pagoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA INICIO:</label>
+              <input type="date" id="filtroFechaInicio" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">TIPO DE SERVICIO:</label>
-              <select id="pagoTipo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-                <option value="Internet">Internet / Paquetes</option>
-                <option value="Luz">Luz (CFE)</option>
-                <option value="Agua">Agua Potable</option>
-                <option value="Renta">Renta de Local</option>
-                <option value="Otro">Otro Servicio</option>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA FIN:</label>
+              <input type="date" id="filtroFechaFin" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="flex gap-2 mt-5">
+              <button onclick="cargarMonitoreo()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition shadow">
+                🔍 Filtrar
+              </button>
+              <button onclick="cargarMonitoreo()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-4 py-1.5 rounded-lg text-sm transition border border-slate-600 shadow">
+                🔄 Actualizar
+              </button>
+            </div>
+          </div>
+
+          <button onclick="exportarExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition shadow">
+            📄 Exportar Excel
+          </button>
+        </div>
+
+        <!-- TARJETAS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <p class="text-xs text-slate-400 font-semibold uppercase">TOTAL RECORRIDOS</p>
+            <p id="mTotalViajes" class="text-2xl font-bold text-white mt-1">0</p>
+          </div>
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <p class="text-xs text-slate-400 font-semibold uppercase">EN PROCESO</p>
+            <p id="mEnProceso" class="text-2xl font-bold text-amber-400 mt-1">0</p>
+          </div>
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <p class="text-xs text-slate-400 font-semibold uppercase">FINALIZADOS</p>
+            <p id="mFinalizados" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
+          </div>
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <p class="text-xs text-slate-400 font-semibold uppercase">KM TOTALES RECORRIDOS</p>
+            <p id="mKmTotales" class="text-2xl font-bold text-blue-400 mt-1">0 km</p>
+          </div>
+        </div>
+
+        <!-- TABLA MONITOREO -->
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="font-bold text-lg text-white">Registro de Recorridos en Tiempo Real</h2>
+            <div class="flex gap-3">
+              <select id="filtroSucursal" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
+                <option value="TODAS">Todas las Sucursales</option>
+              </select>
+              <select id="filtroEstado" onchange="aplicarFiltrosMonitoreo()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1 text-slate-200">
+                <option value="TODOS">Todos los Estados</option>
+                <option value="EN_PROCESO">En Proceso</option>
+                <option value="FINALIZADO">Finalizados</option>
               </select>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR / DETALLE:</label>
-              <input type="text" id="pagoProveedor" placeholder="Ej. Telmex 100M - Paquete Infinitum" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">MONTO ESTIMADO ($):</label>
-              <input type="number" id="pagoMonto" placeholder="Ej. 599.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">PERIODICIDAD:</label>
-              <select id="pagoPeriodicidad" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-                <option value="MENSUAL">Mensual</option>
-                <option value="BIMENSUAL">Bimensual</option>
-                <option value="ANUAL">Anual</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">PRÓXIMA FECHA DE PAGO:</label>
-              <input type="date" id="pagoFecha" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <button onclick="guardarPagoServicio()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
-              Guardar Servicio
-            </button>
           </div>
-        </div>
-
-        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-lg font-bold text-white mb-4">💳 Calendario y Vencimientos de Servicios</h2>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-left border-collapse text-sm">
               <thead>
                 <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3"># VIAJE</th>
+                  <th class="p-3">REPARTIDOR</th>
                   <th class="p-3">SUCURSAL</th>
-                  <th class="p-3">SERVICIO</th>
-                  <th class="p-3">MONTO</th>
-                  <th class="p-3">PERIODICIDAD</th>
-                  <th class="p-3">PRÓX. PAGO</th>
-                  <th class="p-3">ESTADO / DÍAS</th>
-                  <th class="p-3">ACCIÓN</th>
+                  <th class="p-3">DESTINO</th>
+                  <th class="p-3">PAGO</th>
+                  <th class="p-3">FONDO</th>
+                  <th class="p-3">KM INICIAL</th>
+                  <th class="p-3">KM FINAL</th>
+                  <th class="p-3">KM RECORRIDOS</th>
+                  <th class="p-3">FOTOS ODÓMETRO</th>
+                  <th class="p-3">ESTADO</th>
+                  <th class="p-3">INICIO</th>
+                  <th class="p-3">LLEGADA</th>
+                  <th class="p-3">NOTAS</th>
                 </tr>
               </thead>
-              <tbody id="tablaPagos" class="divide-y divide-slate-700/50"></tbody>
+              <tbody id="tablaMonitoreo" class="divide-y divide-slate-700/50"></tbody>
             </table>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- 6. USUARIOS & PERMISOS -->
-    <section id="sec-usuarios" class="hidden space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- 2. SUCURSALES -->
+      <section id="sec-sucursales" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nuevo Usuario</h2>
-          <div class="space-y-3">
+          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nueva Sucursal</h2>
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
-              <select id="userSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
-              <input type="text" id="userNombre" placeholder="Ej. Ana María López" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE:</label>
+              <input type="text" id="sucNombre" placeholder="Ej. Sucursal Laguitos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
-              <input type="text" id="userUsername" placeholder="Ej. analopez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">DIRECCIÓN:</label>
+              <input type="text" id="sucDireccion" placeholder="Ej. Av. Central #123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
-              <input type="password" id="userPassword" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
+              <input type="text" id="sucTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO:</label>
-              <input type="text" id="userPuesto" placeholder="Ej. General de RH" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">DEPARTAMENTO:</label>
-              <input type="text" id="userDepto" placeholder="Ej. Recursos Humanos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO DE CONTACTO:</label>
-              <input type="text" id="userTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-
-            <div class="border-t border-slate-700 pt-3">
-              <label class="block text-xs font-bold text-blue-400 mb-2">PERMISOS DE ACCESO:</label>
-              <div class="space-y-1 text-xs">
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_monitoreo" checked> Monitoreo en Vivo</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_sucursales"> Sucursales</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_repartidores"> Repartidores</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_motos"> Motos & Mantenimiento</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_pagos"> Pagos & Servicios</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="perm_usuarios"> Usuarios & Permisos</label>
-              </div>
-            </div>
-
-            <button onclick="guardarUsuarioSistema()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
-              Guardar Usuario
+            <button onclick="guardarSucursal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+              Guardar Sucursal
             </button>
           </div>
         </div>
 
         <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-lg font-bold text-white mb-4">⚙️ Usuarios Registrados en el Sistema</h2>
+          <h2 class="text-lg font-bold text-white mb-4">🏢 Sucursales Activas</h2>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead>
                 <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                  <th class="p-3">USUARIO</th>
-                  <th class="p-3">NOMBRE COMPLETO</th>
-                  <th class="p-3">PUESTO / DEPTO</th>
-                  <th class="p-3">SUCURSAL</th>
+                  <th class="p-3">ID</th>
+                  <th class="p-3">NOMBRE</th>
+                  <th class="p-3">DIRECCIÓN</th>
                   <th class="p-3">TELÉFONO</th>
                   <th class="p-3">ACCIÓN</th>
                 </tr>
               </thead>
-              <tbody id="tablaUsuariosSistema" class="divide-y divide-slate-700/50"></tbody>
+              <tbody id="tablaSucursales" class="divide-y divide-slate-700/50"></tbody>
             </table>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-  </main>
+      <!-- 3. REPARTIDORES -->
+      <section id="sec-repartidores" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Repartidor</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
+              <input type="text" id="repNombre" placeholder="Ej. Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+              <select id="repSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO:</label>
+              <input type="text" id="repTelefono" placeholder="Ej. 9619876543" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PIN DE ACCESO (4 DÍGITOS):</label>
+              <input type="text" id="repPin" maxlength="4" placeholder="Ej. 1234" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <button onclick="guardarRepartidor()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+              Guardar Repartidor
+            </button>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+          <h2 class="text-lg font-bold text-white mb-4">👥 Lista de Repartidores</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3">REPARTIDOR</th>
+                  <th class="p-3">ESTATUS</th>
+                  <th class="p-3">TELÉFONO</th>
+                  <th class="p-3">PIN ACCESO</th>
+                  <th class="p-3">SUCURSAL ACTUAL</th>
+                  <th class="p-3">CAMBIAR SUCURSAL</th>
+                  <th class="p-3">ACCIÓN</th>
+                </tr>      
+              </thead>
+              <tbody id="tablaRepartidores" class="divide-y divide-slate-700/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. MOTOS -->
+      <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
+              <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
+              <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+              <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
+              <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+            </div>
+            <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+              Guardar Moto
+            </button>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+          <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                  <th class="p-3">MOTO</th>
+                  <th class="p-3">SUCURSAL</th>
+                  <th class="p-3">KM ACTUAL</th>
+                  <th class="p-3">ESTADO OPERATIVO</th>
+                  <th class="p-3">DETALLE / FALLA</th>
+                  <th class="p-3">ACCIONES</th>
+                </tr>
+              </thead>
+              <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. PAGOS & SERVICIOS -->
+      <section id="sec-pagos" class="hidden space-y-6">
+        <div id="alertaVencimientos" class="hidden bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-300 text-sm font-semibold flex items-center gap-3">
+          <span>⚠️ ATENCIÓN:</span>
+          <span id="textoAlertaVencimientos">Tienes servicios con vencimiento próximo en los siguientes 6 días.</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+            <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Servicio / Pago</h2>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
+                <select id="pagoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">TIPO DE SERVICIO:</label>
+                <select id="pagoTipo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                  <option value="Internet">Internet / Paquetes</option>
+                  <option value="Luz">Luz (CFE)</option>
+                  <option value="Agua">Agua Potable</option>
+                  <option value="Renta">Renta de Local</option>
+                  <option value="Otro">Otro Servicio</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR / DETALLE:</label>
+                <input type="text" id="pagoProveedor" placeholder="Ej. Telmex 100M - Paquete Infinitum" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">MONTO ESTIMADO ($):</label>
+                <input type="number" id="pagoMonto" placeholder="Ej. 599.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">PERIODICIDAD:</label>
+                <select id="pagoPeriodicidad" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                  <option value="MENSUAL">Mensual</option>
+                  <option value="BIMENSUAL">Bimensual</option>
+                  <option value="ANUAL">Anual</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">PRÓXIMA FECHA DE PAGO:</label>
+                <input type="date" id="pagoFecha" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <button onclick="guardarPagoServicio()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+                Guardar Servicio
+              </button>
+            </div>
+          </div>
+
+          <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+            <h2 class="text-lg font-bold text-white mb-4">💳 Calendario y Vencimientos de Servicios</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                    <th class="p-3">SUCURSAL</th>
+                    <th class="p-3">SERVICIO</th>
+                    <th class="p-3">MONTO</th>
+                    <th class="p-3">PERIODICIDAD</th>
+                    <th class="p-3">PRÓX. PAGO</th>
+                    <th class="p-3">ESTADO / DÍAS</th>
+                    <th class="p-3">ACCIÓN</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaPagos" class="divide-y divide-slate-700/50"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. USUARIOS & PERMISOS -->
+      <section id="sec-usuarios" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+            <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Nuevo Usuario</h2>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL:</label>
+                <select id="userSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE COMPLETO:</label>
+                <input type="text" id="userNombre" placeholder="Ej. Ana María López" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">USUARIO:</label>
+                <input type="text" id="userUsername" placeholder="Ej. analopez" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">CONTRASEÑA:</label>
+                <input type="password" id="userPassword" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">PUESTO:</label>
+                <input type="text" id="userPuesto" placeholder="Ej. General de RH" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">DEPARTAMENTO:</label>
+                <input type="text" id="userDepto" placeholder="Ej. Recursos Humanos" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">TELÉFONO DE CONTACTO:</label>
+                <input type="text" id="userTelefono" placeholder="Ej. 9611234567" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+              </div>
+
+              <div class="border-t border-slate-700 pt-3">
+                <label class="block text-xs font-bold text-blue-400 mb-2">PERMISOS DE ACCESO:</label>
+                <div class="space-y-1 text-xs">
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_monitoreo" checked> Monitoreo en Vivo</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_sucursales"> Sucursales</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_repartidores"> Repartidores</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_motos"> Motos & Mantenimiento</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_pagos"> Pagos & Servicios</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" id="perm_usuarios"> Usuarios & Permisos</label>
+                </div>
+              </div>
+
+              <button onclick="guardarUsuarioSistema()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+                Guardar Usuario
+              </button>
+            </div>
+          </div>
+
+          <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+            <h2 class="text-lg font-bold text-white mb-4">⚙️ Usuarios Registrados en el Sistema</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                    <th class="p-3">USUARIO</th>
+                    <th class="p-3">NOMBRE COMPLETO</th>
+                    <th class="p-3">PUESTO / DEPTO</th>
+                    <th class="p-3">SUCURSAL</th>
+                    <th class="p-3">TELÉFONO</th>
+                    <th class="p-3">ACCIÓN</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaUsuariosSistema" class="divide-y divide-slate-700/50"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
 
   <script>
     const API_URL = 'https://pintacontrol-backend.onrender.com/api';
@@ -468,8 +486,10 @@
     window.onload = () => {
       if (!usuarioSesion) {
         document.getElementById('vistaLogin').classList.remove('hidden');
+        document.getElementById('appContainer').classList.add('hidden');
       } else {
         document.getElementById('vistaLogin').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('hidden');
         configurarInterfazUsuario();
       }
     };
@@ -490,7 +510,10 @@
         if (res.ok) {
           usuarioSesion = data.usuario;
           localStorage.setItem('pintaControlUser', JSON.stringify(usuarioSesion));
+          
+          // Ocultar login y mostrar el panel principal
           document.getElementById('vistaLogin').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
           configurarInterfazUsuario();
         } else {
           alert(data.error || 'Error al iniciar sesión.');
@@ -1134,7 +1157,7 @@
       cargarUsuariosSistema();
     }
 
-    // Intervalo de actualización automática cada 1 minuto
+    // Intervalo de actualización automática
     setInterval(() => {
       if (usuarioSesion) {
         cargarMonitoreo();
