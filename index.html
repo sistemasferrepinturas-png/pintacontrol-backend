@@ -538,9 +538,11 @@ function configurarInterfazUsuario() {
       document.getElementById('lblUsuarioLogueado').innerText = usuarioSesion.nombre_completo;
       document.getElementById('lblRolLogueado').innerText = `${usuarioSesion.puesto || 'Usuario'} (${usuarioSesion.sucursal || 'Todas'})`;
 
+      // Cargar sucursales en segundo plano sin congelar la pantalla
+      cargarComboSucursales();
+
       const p = usuarioSesion.permisos || {};
 
-      // Mapeo de pestañas y sus permisos correspondientes
       const modulos = [
         { id: 'monitoreo', permitido: usuarioSesion.es_admin_supremo || !!p.monitoreo?.ver },
         { id: 'sucursales', permitido: usuarioSesion.es_admin_supremo || !!p.sucursales?.ver },
@@ -552,7 +554,6 @@ function configurarInterfazUsuario() {
 
       let primerModuloPermitido = null;
 
-      // Ocultar o mostrar botones de pestañas según los permisos
       modulos.forEach(m => {
         const tabBtn = document.getElementById(`tab-${m.id}`);
         if (tabBtn) {
@@ -565,7 +566,6 @@ function configurarInterfazUsuario() {
         }
       });
 
-      // Cargar automáticamente la primera pestaña a la que el usuario tiene acceso
       if (primerModuloPermitido) {
         cambiarPestana(primerModuloPermitido);
       } else {
@@ -628,11 +628,24 @@ function configurarInterfazUsuario() {
       } catch (e) {}
     }
 
-    async function cargarComboSucursales() {
+async function cargarComboSucursales() {
+      // Indicador de carga previo en todos los combos
+      const comboPagos = document.getElementById('pagoSucursal');
+      const comboUser = document.getElementById('userSucursal');
+      const comboRep = document.getElementById('repSucursal');
+      const comboMoto = document.getElementById('motoSucursal');
+      
+      const optionCargando = '<option value="">⌛ Cargando sucursales...</option>';
+      if (comboPagos) comboPagos.innerHTML = optionCargando;
+      if (comboUser) comboUser.innerHTML = optionCargando;
+      if (comboRep) comboRep.innerHTML = optionCargando;
+      if (comboMoto) comboMoto.innerHTML = optionCargando;
+
       try {
         const res = await fetch(`${API_URL}/sucursales`);
         listaSucursalesGlobal = await res.json();
         
+        // 1. Combo Filtro Monitoreo
         const sel = document.getElementById('filtroSucursal');
         if (sel) {
           sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
@@ -641,11 +654,16 @@ function configurarInterfazUsuario() {
           });
         }
 
-        const comboPagos = document.getElementById('pagoSucursal');
-        const comboUser = document.getElementById('userSucursal');
-        if (comboPagos) comboPagos.innerHTML = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
-        if (comboUser) comboUser.innerHTML = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
-      } catch (e) {}
+        // 2. Llenar combos de formularios
+        const opciones = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+        if (comboPagos) comboPagos.innerHTML = opciones;
+        if (comboUser) comboUser.innerHTML = opciones;
+        if (comboRep) comboRep.innerHTML = opciones;
+        if (comboMoto) comboMoto.innerHTML = opciones;
+
+      } catch (e) {
+        console.error('Error al cargar catálogo de sucursales:', e);
+      }
     }
 
     function aplicarFiltrosMonitoreo() {
