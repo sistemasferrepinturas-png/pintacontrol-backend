@@ -555,4 +555,209 @@ router.post('/viajes/finalizar', async (req, res) => {
   }
 });
 
+// ==========================================
+// 1. AUTENTICACIÓN Y AUDITORÍA
+// ==========================================
+
+// Login de Usuarios del Sistema
+router.post('/auth/login', async (req, res) => {
+  const { usuario, password } = req.body;
+  try {
+    const result = await db.query(
+      `SELECT u.*, s.nombre as sucursal_nombre 
+       FROM usuarios_sistema u 
+       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal 
+       WHERE u.usuario = $1 AND u.activo = TRUE`,
+      [usuario]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Usuario no encontrado o inactivo.' });
+    }
+
+    const user = result.rows[0];
+    if (user.password_hash !== password) {
+      return res.status(401).json({ error: 'Contraseña incorrecta.' });
+    }
+
+    // Registrar inicio de sesión en auditoría
+    await db.query(
+      `INSERT INTO bitacora_auditoria (id_usuario_sys, usuario_nombre, accion, modulo, detalles)
+       VALUES ($1, $2, 'LOGIN', 'SISTEMA', 'Inicio de sesión exitoso')`,
+      [user.id_usuario_sys, user.nombre_completo]
+    );
+
+    res.json({
+      ok: true,
+      usuario: {
+        id_usuario_sys: user.id_usuario_sys,
+        nombre_completo: user.nombre_completo,
+        usuario: user.usuario,
+        puesto: user.puesto,
+        departamento: user.departamento,
+        sucursal: user.sucursal_nombre || 'Todas',
+        es_admin_supremo: user.es_admin_supremo,
+        permisos: user.permisos
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error en servidor: ' + e.message });
+  }
+});
+
+// Registrar evento en bitácora de auditoría
+router.post('/auditoria/registrar', async (req, res) => {
+  const { id_usuario_sys, usuario_nombre, accion, modulo, detalles } = req.body;
+  try {
+    await db.query(
+      `INSERT INTO bitacora_auditoria (id_usuario_sys, usuario_nombre, accion, modulo, detalles)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id_usuario_sys, usuario_nombre, accion, modulo, detalles]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Obtener registros de bitácora
+router.get('/auditoria', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT * FROM bitacora_auditoria ORDER BY fecha_hora DESC LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// 2. GESTIÓN DE USUARIOS DEL SISTEMA
+// ==========================================
+
+router.get('/usuarios-sistema', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT u.*, s.nombre as sucursal_nombre 
+       FROM usuarios_sistema u 
+       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal 
+       WHERE u.activo = TRUE 
+       ORDER BY u.id_usuario_sys ASC`
+    );
+    res.json(result.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/usuarios-sistema', async (req, res) => {
+  const { id_sucursal, nombre_completo, usuario, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
+  try {
+    const result = await db.query(
+      `INSERT INTO usuarios_sistema (id_sucursal, nombre_completo, usuario, password_hash, puesto, departamento, telefono, permisos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [id_sucursal || null, nombre_completo, usuario, password, puesto, departamento, telefono, JSON.stringify(permisos)]
+    );
+
+    await db.query(
+      `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
+       VALUES ($1, 'CREAR_USUARIO', 'USUARIOS', 'Se creó el usuario ' || $2)`,
+      [usuario_operador || 'Admin', usuario]
+    );
+
+    res.json(result.rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/usuarios-sistema/:id', async (req, res) => {
+  const { id } = req.params;
+  const { id_sucursal, nombre_completo, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
+  try {
+    let query = `UPDATE usuarios_sistema SET id_sucursal=$1, nombre_completo=$2, puesto=$3, departamento=$4, telefono=$5, permisos=$6`;
+    let params = [id_sucursal || null, nombre_completo, puesto, departamento, telefono, JSON.stringify(permisos)];
+
+    if (password && password.trim() !== '') {
+      query += `, password_hash=$7 WHERE id_usuario_sys=$8`;
+      params.push(password, id);
+    } else {
+      query += ` WHERE id_usuario_sys=$7`;
+      params.push(id);
+    }
+
+    await db.query(query, params);
+
+    await db.query(
+      `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
+       VALUES ($1, 'MODIFICAR_USUARIO', 'USUARIOS', 'Se modificó el usuario ID ' || $2)`,
+      [usuario_operador || 'Admin', id]
+    );
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/usuarios-sistema/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query(`UPDATE usuarios_sistema SET activo = FALSE WHERE id_usuario_sys = $1`, [id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// 3. CONTROL DE PAGOS Y SERVICIOS
+// ==========================================
+
+router.get('/pagos-servicios', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT p.*, s.nombre as sucursal_nombre,
+              (p.proxima_fecha_pago - CURRENT_DATE) as dias_restantes
+       FROM pagos_servicios p
+       JOIN sucursales s ON p.id_sucursal = s.id_sucursal
+       ORDER BY p.proxima_fecha_pago ASC`
+    );
+    res.json(result.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/pagos-servicios', async (req, res) => {
+  const { id_sucursal, tipo_servicio, proveedor_descripcion, monto, periodicidad, proxima_fecha_pago, observaciones } = req.body;
+  try {
+    const result = await db.query(
+      `INSERT INTO pagos_servicios (id_sucursal, tipo_servicio, proveedor_descripcion, monto, periodicidad, proxima_fecha_pago, observaciones)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [id_sucursal, tipo_servicio, proveedor_descripcion, monto || 0, periodicidad, proxima_fecha_pago, observaciones]
+    );
+    res.json(result.rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/pagos-servicios/:id/marcar-pagado', async (req, res) => {
+  const { id } = req.params;
+  const { nueva_fecha_pago } = req.body;
+  try {
+    await db.query(
+      `UPDATE pagos_servicios 
+       SET estado_pago = 'PAGADO', proxima_fecha_pago = $1 
+       WHERE id_servicio = $2`,
+      [nueva_fecha_pago, id]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
