@@ -641,37 +641,71 @@ function configurarInterfazUsuario() {
     }
 
 async function cargarComboSucursales() {
-      // Indicador de carga previo en todos los combos
-      const comboPagos = document.getElementById('pagoSucursal');
-      const comboUser = document.getElementById('userSucursal');
-      const comboRep = document.getElementById('repSucursal');
-      const comboMoto = document.getElementById('motoSucursal');
-      
-      const optionCargando = '<option value="">⌛ Cargando sucursales...</option>';
-      if (comboPagos) comboPagos.innerHTML = optionCargando;
-      if (comboUser) comboUser.innerHTML = optionCargando;
-      if (comboRep) comboRep.innerHTML = optionCargando;
-      if (comboMoto) comboMoto.innerHTML = optionCargando;
+      // 1. Memorizar las opciones seleccionadas actualmente por el usuario
+      const selPagos = document.getElementById('pagoSucursal');
+      const selUser = document.getElementById('userSucursal');
+      const selRep = document.getElementById('repSucursal');
+      const selMoto = document.getElementById('motoSucursal');
+      const selMonitoreo = document.getElementById('filtroSucursal');
+
+      const valPagos = selPagos ? selPagos.value : '';
+      const valUser = selUser ? selUser.value : '';
+      const valRep = selRep ? selRep.value : '';
+      const valMoto = selMoto ? selMoto.value : '';
+      const valMonitoreo = selMonitoreo ? selMonitoreo.value : 'TODAS';
+
+      // 2. Mostrar "Cargando..." ÚNICAMENTE la primera vez que se entra a la aplicación
+      if (!listaSucursalesGlobal || listaSucursalesGlobal.length === 0) {
+        const optionCargando = '<option value="">⌛ Cargando sucursales...</option>';
+        if (selPagos) selPagos.innerHTML = optionCargando;
+        if (selUser) selUser.innerHTML = optionCargando;
+        if (selRep) selRep.innerHTML = optionCargando;
+        if (selMoto) selMoto.innerHTML = optionCargando;
+      }
 
       try {
         const res = await fetch(`${API_URL}/sucursales`);
         listaSucursalesGlobal = await res.json();
         
-        // 1. Combo Filtro Monitoreo
-        const sel = document.getElementById('filtroSucursal');
-        if (sel) {
-          sel.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
-          listaSucursalesGlobal.forEach(s => {
-            sel.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
-          });
+        // 3. Generar las opciones HTML
+        const opciones = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+
+        // 4. Actualizar combos y RESTAURAR la selección activa del usuario
+        if (selPagos) {
+          selPagos.innerHTML = opciones;
+          if (valPagos && listaSucursalesGlobal.some(s => s.id_sucursal == valPagos)) {
+            selPagos.value = valPagos; // 👈 Mantiene la sucursal elegida
+          }
         }
 
-        // 2. Llenar combos de formularios
-        const opciones = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
-        if (comboPagos) comboPagos.innerHTML = opciones;
-        if (comboUser) comboUser.innerHTML = opciones;
-        if (comboRep) comboRep.innerHTML = opciones;
-        if (comboMoto) comboMoto.innerHTML = opciones;
+        if (selUser) {
+          selUser.innerHTML = opciones;
+          if (valUser && listaSucursalesGlobal.some(s => s.id_sucursal == valUser)) {
+            selUser.value = valUser;
+          }
+        }
+
+        if (selRep) {
+          selRep.innerHTML = opciones;
+          if (valRep && listaSucursalesGlobal.some(s => s.id_sucursal == valRep)) {
+            selRep.value = valRep;
+          }
+        }
+
+        if (selMoto) {
+          selMoto.innerHTML = opciones;
+          if (valMoto && listaSucursalesGlobal.some(s => s.id_sucursal == valMoto)) {
+            selMoto.value = valMoto;
+          }
+        }
+
+        if (selMonitoreo) {
+          selMonitoreo.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
+          listaSucursalesGlobal.forEach(s => {
+            selMonitoreo.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+          });
+          if (valMonitoreo) selMonitoreo.value = valMonitoreo;
+        }
 
       } catch (e) {
         console.error('Error al cargar catálogo de sucursales:', e);
