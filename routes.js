@@ -765,12 +765,35 @@ router.get('/pagos-servicios', async (req, res) => {
 });
 
 router.post('/pagos-servicios', async (req, res) => {
-  const { id_sucursal, tipo_servicio, proveedor_descripcion, monto, periodicidad, proxima_fecha_pago, observaciones } = req.body;
+  const { 
+    id_sucursal, 
+    tipo_servicio, 
+    proveedor_descripcion, 
+    numero_cuenta, 
+    referencia_pago, 
+    monto, 
+    periodicidad, 
+    proxima_fecha_pago, 
+    observaciones 
+  } = req.body;
+
   try {
-    const result = await db.query(
-      `INSERT INTO pagos_servicios (id_sucursal, tipo_servicio, proveedor_descripcion, monto, periodicidad, proxima_fecha_pago, observaciones)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [id_sucursal, tipo_servicio, proveedor_descripcion, monto || 0, periodicidad, proxima_fecha_pago, observaciones]
+    const result = await pool.query(
+      `INSERT INTO pagos_servicios (
+         id_sucursal, tipo_servicio, proveedor_descripcion, numero_cuenta, referencia_pago, monto, periodicidad, proxima_fecha_pago, observaciones
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        id_sucursal, 
+        tipo_servicio, 
+        proveedor_descripcion, 
+        numero_cuenta || '', 
+        referencia_pago || '', 
+        monto || 0, 
+        periodicidad, 
+        proxima_fecha_pago, 
+        observaciones || ''
+      ]
     );
     res.json(result.rows[0]);
   } catch (e) {
