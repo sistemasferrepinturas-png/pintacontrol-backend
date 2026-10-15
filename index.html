@@ -534,25 +534,43 @@
       window.location.reload();
     }
 
-    function configurarInterfazUsuario() {
+function configurarInterfazUsuario() {
       document.getElementById('lblUsuarioLogueado').innerText = usuarioSesion.nombre_completo;
       document.getElementById('lblRolLogueado').innerText = `${usuarioSesion.puesto || 'Usuario'} (${usuarioSesion.sucursal || 'Todas'})`;
 
       const p = usuarioSesion.permisos || {};
-      if (!usuarioSesion.es_admin_supremo) {
-        if (!p.sucursales?.ver) document.getElementById('tab-sucursales').style.display = 'none';
-        if (!p.repartidores?.ver) document.getElementById('tab-repartidores').style.display = 'none';
-        if (!p.motos?.ver) document.getElementById('tab-motos').style.display = 'none';
-        if (!p.pagos?.ver) document.getElementById('tab-pagos').style.display = 'none';
-        if (!p.usuarios?.ver) document.getElementById('tab-usuarios').style.display = 'none';
-      }
 
-      cargarMonitoreo();
-      cargarSucursales();
-      cargarRepartidores();
-      cargarMotos();
-      cargarPagosServicios();
-      cargarUsuariosSistema();
+      // Mapeo de pestañas y sus permisos correspondientes
+      const modulos = [
+        { id: 'monitoreo', permitido: usuarioSesion.es_admin_supremo || !!p.monitoreo?.ver },
+        { id: 'sucursales', permitido: usuarioSesion.es_admin_supremo || !!p.sucursales?.ver },
+        { id: 'repartidores', permitido: usuarioSesion.es_admin_supremo || !!p.repartidores?.ver },
+        { id: 'motos', permitido: usuarioSesion.es_admin_supremo || !!p.motos?.ver },
+        { id: 'pagos', permitido: usuarioSesion.es_admin_supremo || !!p.pagos?.ver },
+        { id: 'usuarios', permitido: usuarioSesion.es_admin_supremo || !!p.usuarios?.ver }
+      ];
+
+      let primerModuloPermitido = null;
+
+      // Ocultar o mostrar botones de pestañas según los permisos
+      modulos.forEach(m => {
+        const tabBtn = document.getElementById(`tab-${m.id}`);
+        if (tabBtn) {
+          if (m.permitido) {
+            tabBtn.style.display = 'inline-block';
+            if (!primerModuloPermitido) primerModuloPermitido = m.id;
+          } else {
+            tabBtn.style.display = 'none';
+          }
+        }
+      });
+
+      // Cargar automáticamente la primera pestaña a la que el usuario tiene acceso
+      if (primerModuloPermitido) {
+        cambiarPestana(primerModuloPermitido);
+      } else {
+        alert('Este usuario no tiene permisos asignados para ningún módulo.');
+      }
     }
 
     function cambiarPestana(pestana) {
