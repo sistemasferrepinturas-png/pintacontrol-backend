@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
+const db = pool; // 👈 Agrega esta línea para que el backend reconozca tanto 'pool' como 'db'
 
 /* ==========================================================================
    1. SUCURSALES (Obtener, Crear, Eliminar, Estado Uso)
