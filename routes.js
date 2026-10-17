@@ -294,6 +294,23 @@ router.delete('/motos/:id', async (req, res) => {
   }
 });
 
+// Actualizar todos los datos de una moto
+router.put('/motos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { placa, marca_modelo, id_sucursal, kilometraje_actual } = req.body;
+  try {
+    await pool.query(
+      `UPDATE vehiculos 
+       SET placa = $1, marca_modelo = $2, id_sucursal = $3, kilometraje_actual = $4 
+       WHERE id_vehiculo = $5`,
+      [placa, marca_modelo, id_sucursal || null, parseInt(kilometraje_actual || 0, 10), id]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
   try {
     const { id_vehiculo } = req.params;
