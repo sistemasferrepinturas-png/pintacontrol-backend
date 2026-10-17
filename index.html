@@ -273,52 +273,57 @@
         </div>
       </section>
 
-      <!-- 4. MOTOS -->
-      <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
-          <h2 class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
-              <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
-              <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
-              <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE INICIAL:</label>
-              <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
-            </div>
-            <button onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition">
+<!-- 4. MOTOS & MANTENIMIENTO -->
+    <section id="sec-motos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-5 h-fit">
+        <h2 id="tituloFormMoto" class="text-lg font-bold text-white mb-4">➕ Registrar Moto</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">PLACA / NUM ECONÓMICO:</label>
+            <input type="text" id="motoPlaca" placeholder="Ej. MOT-001" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">MARCA / MODELO:</label>
+            <input type="text" id="motoModelo" placeholder="Ej. Italika FT125" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">SUCURSAL ASIGNADA:</label>
+            <select id="motoSucursal" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">KILOMETRAJE ACTUAL / INICIAL:</label>
+            <input type="number" id="motoKm" placeholder="Ej. 12500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button id="btnGuardarMoto" onclick="guardarMoto()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg transition shadow">
               Guardar Moto
+            </button>
+            <button id="btnCancelarEdicionMoto" onclick="cancelarEdicionMoto()" class="hidden w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-2.5 rounded-lg transition text-xs">
+              Cancelar
             </button>
           </div>
         </div>
+      </div>
 
-        <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
-                  <th class="p-3">MOTO</th>
-                  <th class="p-3">SUCURSAL</th>
-                  <th class="p-3">KM ACTUAL</th>
-                  <th class="p-3">ESTADO OPERATIVO</th>
-                  <th class="p-3">DETALLE / FALLA</th>
-                  <th class="p-3">ACCIONES</th>
-                </tr>
-              </thead>
-              <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
-            </table>
-          </div>
+      <div class="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <h2 class="text-lg font-bold text-white mb-4">🏍️ Flota de Vehículos</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <th class="p-3">MOTO</th>
+                <th class="p-3">SUCURSAL</th>
+                <th class="p-3">KM ACTUAL</th>
+                <th class="p-3">ESTADO OPERATIVO</th>
+                <th class="p-3">DETALLE / FALLA</th>
+                <th class="p-3">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="tablaMotos" class="divide-y divide-slate-700/50"></tbody>
+          </table>
         </div>
-      </section>
+      </div>
+    </section>
 
 <!-- 5. PAGOS & SERVICIOS -->
     <section id="sec-pagos" class="hidden space-y-6">
@@ -988,14 +993,17 @@ async function cargarComboSucursales() {
       cargarRepartidores();
     }
 
-    // MOTOS
+// MOTOS Y MANTENIMIENTO
+    let idMotoEditando = null;
+    let listaMotosGlobal = [];
+
     async function cargarMotos() {
       try {
         const [resMot, resSuc] = await Promise.all([
           fetch(`${API_URL}/motos`),
           fetch(`${API_URL}/sucursales`)
         ]);
-        const motos = await resMot.json();
+        listaMotosGlobal = await resMot.json();
         const sucs = await resSuc.json();
 
         const selForm = document.getElementById('motoSucursal');
@@ -1007,9 +1015,9 @@ async function cargarComboSucursales() {
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        motos.forEach(m => {
+        listaMotosGlobal.forEach(m => {
           tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/40">
+            <tr class="hover:bg-slate-800/40 border-b border-slate-800">
               <td class="p-3 font-semibold text-white">${m.placa} <span class="block text-xs font-normal text-slate-400">${m.marca_modelo}</span></td>
               <td class="p-3 text-slate-300">${m.sucursal || 'Sin Asignar'}</td>
               <td class="p-3 font-bold text-blue-400">${m.kilometraje_actual} km</td>
@@ -1022,8 +1030,8 @@ async function cargarComboSucursales() {
               </td>
               <td class="p-3 text-xs text-amber-300">${m.detalles_mecanicos || 'Ninguno'}</td>
               <td class="p-3 flex gap-2">
-                <button onclick="editarKmMoto(${m.id_vehiculo}, ${m.kilometraje_actual})" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded text-xs hover:bg-emerald-500 hover:text-white transition">✏️ Km</button>
-                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition">Eliminar</button>
+                <button onclick="prepararEditarMoto(${m.id_vehiculo})" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs hover:bg-blue-500 hover:text-white transition font-semibold">✏️ Editar</button>
+                <button onclick="eliminarMoto(${m.id_vehiculo})" class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition font-semibold">Eliminar</button>
               </td>
             </tr>
           `;
@@ -1031,51 +1039,74 @@ async function cargarComboSucursales() {
       } catch (e) {}
     }
 
-    async function guardarMoto() {
-      const placa = document.getElementById('motoPlaca').value;
-      const marca_modelo = document.getElementById('motoModelo').value;
-      const id_sucursal = document.getElementById('motoSucursal').value;
-      const kilometraje_actual = document.getElementById('motoKm').value;
+    function prepararEditarMoto(id) {
+      const m = listaMotosGlobal.find(item => item.id_vehiculo == id);
+      if (!m) return;
 
-      if (!placa) return alert('Ingresa la placa.');
+      idMotoEditando = m.id_vehiculo;
+      document.getElementById('tituloFormMoto').innerText = '✏️ Editar Moto';
+      document.getElementById('btnGuardarMoto').innerText = 'Actualizar Moto';
+      document.getElementById('btnCancelarEdicionMoto').classList.remove('hidden');
 
-      const res = await fetch(`${API_URL}/motos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placa, marca_modelo, id_sucursal, kilometraje_actual: parseInt(kilometraje_actual || 0, 10) })
-      });
-
-      if (res.ok) {
-        alert('Moto registrada.');
-        cargarMotos();
-      }
+      document.getElementById('motoPlaca').value = m.placa || '';
+      document.getElementById('motoModelo').value = m.marca_modelo || '';
+      document.getElementById('motoSucursal').value = m.id_sucursal || '';
+      document.getElementById('motoKm').value = m.kilometraje_actual || 0;
     }
 
-    async function editarKmMoto(id_vehiculo, kmActual) {
-      const nuevoKm = prompt('Nuevo kilometraje actual:', kmActual);
-      if (nuevoKm !== null && !isNaN(nuevoKm)) {
-        await fetch(`${API_URL}/motos/${id_vehiculo}/kilometraje`, {
+    function cancelarEdicionMoto() {
+      idMotoEditando = null;
+      document.getElementById('tituloFormMoto').innerText = '➕ Registrar Moto';
+      document.getElementById('btnGuardarMoto').innerText = 'Guardar Moto';
+      document.getElementById('btnCancelarEdicionMoto').classList.add('hidden');
+
+      document.getElementById('motoPlaca').value = '';
+      document.getElementById('motoModelo').value = '';
+      document.getElementById('motoKm').value = '';
+    }
+
+    async function guardarMoto() {
+      const payload = {
+        placa: document.getElementById('motoPlaca').value,
+        marca_modelo: document.getElementById('motoModelo').value,
+        id_sucursal: document.getElementById('motoSucursal').value,
+        kilometraje_actual: parseInt(document.getElementById('motoKm').value || 0, 10)
+      };
+
+      if (!payload.placa) return alert('Ingresa la placa o número económico.');
+
+      if (!idMotoEditando) {
+        // MODO CREACIÓN
+        const res = await fetch(`${API_URL}/motos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          alert('Moto registrada con éxito.');
+          cancelarEdicionMoto();
+          cargarMotos();
+        } else {
+          alert('Error al guardar la moto.');
+        }
+      } else {
+        // MODO EDICIÓN
+        const res = await fetch(`${API_URL}/motos/${idMotoEditando}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kilometraje_actual: parseInt(nuevoKm, 10) })
+          body: JSON.stringify(payload)
         });
-        cargarMotos();
+
+        if (res.ok) {
+          alert('Moto actualizada con éxito.');
+          cancelarEdicionMoto();
+          cargarMotos();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Error al actualizar la moto.');
+        }
       }
-    }
-
-    async function actualizarMantenimientoMoto(id_vehiculo, estado, detalles) {
-      await fetch(`${API_URL}/motos/${id_vehiculo}/mantenimiento`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, detalles_mecanicos: detalles })
-      });
-      cargarMotos();
-    }
-
-    async function eliminarMoto(id) {
-      if (!confirm('¿Eliminar esta moto?')) return;
-      await fetch(`${API_URL}/motos/${id}`, { method: 'DELETE' });
-      cargarMotos();
     }
 
     // PAGOS Y SERVICIOS
