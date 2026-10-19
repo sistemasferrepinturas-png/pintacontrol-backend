@@ -552,43 +552,52 @@
     }
 
 function configurarInterfazUsuario() {
-      document.getElementById('lblUsuarioLogueado').innerText = usuarioSesion.nombre_completo;
-      document.getElementById('lblRolLogueado').innerText = `${usuarioSesion.puesto || 'Usuario'} (${usuarioSesion.sucursal || 'Todas'})`;
+  document.getElementById('lblUsuarioLogueado').innerText = usuarioSesion.nombre_completo || usuarioSesion.usuario;
+  document.getElementById('lblRolLogueado').innerText = `${usuarioSesion.puesto || 'Administrador'} (${usuarioSesion.sucursal || 'Todas'})`;
 
-      // Cargar sucursales en segundo plano sin congelar la pantalla
-      cargarComboSucursales();
+  // Cargar sucursales en segundo plano
+  cargarComboSucursales();
 
-      const p = usuarioSesion.permisos || {};
+  // Evaluar si es Administrador General
+  const esAdmin = usuarioSesion.usuario === 'FerreAdmin' || 
+                  usuarioSesion.permisos === 'TODOS' || 
+                  usuarioSesion.es_admin_supremo || 
+                  (typeof usuarioSesion.puesto === 'string' && usuarioSesion.puesto.includes('Administrador'));
 
-      const modulos = [
-        { id: 'monitoreo', permitido: usuarioSesion.es_admin_supremo || !!p.monitoreo?.ver },
-        { id: 'sucursales', permitido: usuarioSesion.es_admin_supremo || !!p.sucursales?.ver },
-        { id: 'repartidores', permitido: usuarioSesion.es_admin_supremo || !!p.repartidores?.ver },
-        { id: 'motos', permitido: usuarioSesion.es_admin_supremo || !!p.motos?.ver },
-        { id: 'pagos', permitido: usuarioSesion.es_admin_supremo || !!p.pagos?.ver },
-        { id: 'usuarios', permitido: usuarioSesion.es_admin_supremo || !!p.usuarios?.ver }
-      ];
+  let p = usuarioSesion.permisos || {};
+  if (typeof p === 'string') {
+    try { p = JSON.parse(p); } catch (e) { p = {}; }
+  }
 
-      let primerModuloPermitido = null;
+  const modulos = [
+    { id: 'monitoreo', permitido: esAdmin || !!p.monitoreo?.ver },
+    { id: 'sucursales', permitido: esAdmin || !!p.sucursales?.ver },
+    { id: 'repartidores', permitido: esAdmin || !!p.repartidores?.ver },
+    { id: 'motos', permitido: esAdmin || !!p.motos?.ver },
+    { id: 'pagos', permitido: esAdmin || !!p.pagos?.ver },
+    { id: 'usuarios', permitido: esAdmin || !!p.usuarios?.ver }
+  ];
 
-      modulos.forEach(m => {
-        const tabBtn = document.getElementById(`tab-${m.id}`);
-        if (tabBtn) {
-          if (m.permitido) {
-            tabBtn.style.display = 'inline-block';
-            if (!primerModuloPermitido) primerModuloPermitido = m.id;
-          } else {
-            tabBtn.style.display = 'none';
-          }
-        }
-      });
+  let primerModuloPermitido = null;
 
-      if (primerModuloPermitido) {
-        cambiarPestana(primerModuloPermitido);
+  modulos.forEach(m => {
+    const tabBtn = document.getElementById(`tab-${m.id}`);
+    if (tabBtn) {
+      if (m.permitido) {
+        tabBtn.style.display = 'inline-block';
+        if (!primerModuloPermitido) primerModuloPermitido = m.id;
       } else {
-        alert('Este usuario no tiene permisos asignados para ningún módulo.');
+        tabBtn.style.display = 'none';
       }
     }
+  });
+
+  if (primerModuloPermitido) {
+    cambiarPestana(primerModuloPermitido);
+  } else {
+    alert('Este usuario no tiene permisos asignados para ningún módulo.');
+  }
+}
 
     function cambiarPestana(pestana) {
       ['monitoreo', 'sucursales', 'repartidores', 'motos', 'pagos', 'usuarios'].forEach(p => {
@@ -646,76 +655,36 @@ function configurarInterfazUsuario() {
     }
 
 async function cargarComboSucursales() {
-      // 1. Memorizar las opciones seleccionadas actualmente por el usuario
-      const selPagos = document.getElementById('pagoSucursal');
-      const selUser = document.getElementById('userSucursal');
-      const selRep = document.getElementById('repSucursal');
-      const selMoto = document.getElementById('motoSucursal');
-      const selMonitoreo = document.getElementById('filtroSucursal');
+  const selPagos = document.getElementById('pagoSucursal');
+  const selUser = document.getElementById('userSucursal');
+  const selRep = document.getElementById('repSucursal');
+  const selMoto = document.getElementById('motoSucursal');
+  const selMonitoreo = document.getElementById('filtroSucursal');
 
-      const valPagos = selPagos ? selPagos.value : '';
-      const valUser = selUser ? selUser.value : '';
-      const valRep = selRep ? selRep.value : '';
-      const valMoto = selMoto ? selMoto.value : '';
-      const valMonitoreo = selMonitoreo ? selMonitoreo.value : 'TODAS';
+  try {
+    const res = await fetch(`${API_URL}/sucursales`);
+    const data = await res.json();
+    listaSucursalesGlobal = Array.isArray(data) ? data : [];
 
-      // 2. Mostrar "Cargando..." ÚNICAMENTE la primera vez que se entra a la aplicación
-      if (!listaSucursalesGlobal || listaSucursalesGlobal.length === 0) {
-        const optionCargando = '<option value="">⌛ Cargando sucursales...</option>';
-        if (selPagos) selPagos.innerHTML = optionCargando;
-        if (selUser) selUser.innerHTML = optionCargando;
-        if (selRep) selRep.innerHTML = optionCargando;
-        if (selMoto) selMoto.innerHTML = optionCargando;
-      }
+    if (listaSucursalesGlobal.length === 0) return;
 
-      try {
-        const res = await fetch(`${API_URL}/sucursales`);
-        listaSucursalesGlobal = await res.json();
-        
-        // 3. Generar las opciones HTML
-        const opciones = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+    const opciones = listaSucursalesGlobal.map(s => `<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
 
-        // 4. Actualizar combos y RESTAURAR la selección activa del usuario
-        if (selPagos) {
-          selPagos.innerHTML = opciones;
-          if (valPagos && listaSucursalesGlobal.some(s => s.id_sucursal == valPagos)) {
-            selPagos.value = valPagos; // 👈 Mantiene la sucursal elegida
-          }
-        }
+    if (selPagos) selPagos.innerHTML = opciones;
+    if (selUser) selUser.innerHTML = opciones;
+    if (selRep) selRep.innerHTML = opciones;
+    if (selMoto) selMoto.innerHTML = opciones;
 
-        if (selUser) {
-          selUser.innerHTML = opciones;
-          if (valUser && listaSucursalesGlobal.some(s => s.id_sucursal == valUser)) {
-            selUser.value = valUser;
-          }
-        }
-
-        if (selRep) {
-          selRep.innerHTML = opciones;
-          if (valRep && listaSucursalesGlobal.some(s => s.id_sucursal == valRep)) {
-            selRep.value = valRep;
-          }
-        }
-
-        if (selMoto) {
-          selMoto.innerHTML = opciones;
-          if (valMoto && listaSucursalesGlobal.some(s => s.id_sucursal == valMoto)) {
-            selMoto.value = valMoto;
-          }
-        }
-
-        if (selMonitoreo) {
-          selMonitoreo.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
-          listaSucursalesGlobal.forEach(s => {
-            selMonitoreo.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
-          });
-          if (valMonitoreo) selMonitoreo.value = valMonitoreo;
-        }
-
-      } catch (e) {
-        console.error('Error al cargar catálogo de sucursales:', e);
-      }
+    if (selMonitoreo) {
+      selMonitoreo.innerHTML = '<option value="TODAS">Todas las Sucursales</option>';
+      listaSucursalesGlobal.forEach(s => {
+        selMonitoreo.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+      });
     }
+  } catch (e) {
+    console.error('Error al cargar catálogo de sucursales:', e);
+  }
+}
 
     function aplicarFiltrosMonitoreo() {
       const sucSel = document.getElementById('filtroSucursal').value;
