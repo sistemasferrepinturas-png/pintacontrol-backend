@@ -1,10 +1,146 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
-const db = pool; // 👈 Agrega esta línea para que el backend reconozca tanto 'pool' como 'db'
+const db = pool;
 
 /* ==========================================================================
-   1. SUCURSALES (Obtener, Crear, Eliminar, Estado Uso)
+   INICIALIZACIÓN AUTOMÁTICA DE TABLAS EN POSTGRESQL
+   ========================================================================== */
+const initDB = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sucursales (
+        id_sucursal SERIAL PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        direccion TEXT,
+        telefono VARCHAR(50),
+        activo BOOLEAN DEFAULT TRUE,
+        en_uso BOOLEAN DEFAULT FALSE
+      );
+
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id_usuario SERIAL PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        email VARCHAR(100),
+        telefono VARCHAR(50),
+        pin VARCHAR(20) DEFAULT '1234',
+        id_sucursal INT REFERENCES sucursales(id_sucursal),
+        rol VARCHAR(20) DEFAULT 'REPARTIDOR',
+        activo BOOLEAN DEFAULT TRUE
+      );
+
+      CREATE TABLE IF NOT EXISTS vehiculos (
+        id_vehiculo SERIAL PRIMARY KEY,
+        placa VARCHAR(50) NOT NULL,
+        marca_modelo VARCHAR(100),
+        id_sucursal INT REFERENCES sucursales(id_sucursal),
+        kilometraje_actual INT DEFAULT 0,
+        estado VARCHAR(30) DEFAULT 'DISPONIBLE',
+        detalles_mecanicos TEXT,
+        requiere_mantenimiento BOOLEAN DEFAULT FALSE,
+        activo BOOLEAN DEFAULT TRUE
+      );
+
+      CREATE TABLE IF NOT EXISTS turnos_diarios (
+        id_turno SERIAL PRIMARY KEY,
+        id_usuario INT REFERENCES usuarios(id_usuario),
+        id_vehiculo INT REFERENCES vehiculos(id_vehiculo),
+        id_sucursal INT REFERENCES sucursales(id_sucursal),
+        fecha DATE DEFAULT CURRENT_DATE,
+        hora_inicio TIMESTAMP DEFAULT NOW(),
+        hora_fin TIMESTAMP,
+        km_inicial INT DEFAULT 0,
+        km_final INT,
+        estado VARCHAR(20) DEFAULT 'ABIERTO'
+      );
+
+      CREATE TABLE IF NOT EXISTS viajes_recorridos (
+        id_viaje SERIAL PRIMARY KEY,
+        id_turno INT REFERENCES turnos_diarios(id_turno),
+        id_usuario INT REFERENCES usuarios(id_usuario),
+        numero_viaje_del_dia INT DEFAULT 1,
+        direccion_destino TEXT,
+        forma_pago_esperada VARCHAR(50),
+        fondo_cambio_recibido NUMERIC(10,2) DEFAULT 0,
+        km_inicial NUMERIC(10,2) DEFAULT 0,
+        km_final NUMERIC(10,2),
+        estado_viaje VARCHAR(20) DEFAULT 'EN_PROCESO',
+        fecha_hora_inicio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        fecha_hora_fin TIMESTAMP,
+        notas TEXT,
+        foto_odometro_inicio TEXT,
+        foto_odometro_fin TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS usuarios_sistema (
+        id_usuario_sys SERIAL PRIMARY KEY,
+        id_sucursal INT,
+        usuario VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(100),
+        password_hash VARCHAR(100),
+        nombre_completo VARCHAR(100),
+        puesto VARCHAR(50),
+        departamento VARCHAR(50),
+        telefono VARCHAR(50),
+        permisos TEXT DEFAULT 'TODOS',
+        modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS',
+        activo BOOLEAN DEFAULT TRUE,
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS bitacora_auditoria (
+        id_bitacora SERIAL PRIMARY KEY,
+        id_usuario_sys INT,
+        usuario VARCHAR(50),
+        usuario_nombre VARCHAR(100),
+        accion VARCHAR(100),
+        modulo VARCHAR(50),
+        detalles TEXT,
+        fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS pagos_servicios (
+        id_servicio SERIAL PRIMARY KEY,
+        id_sucursal INT REFERENCES sucursales(id_sucursal),
+        tipo_servicio VARCHAR(50),
+        proveedor_descripcion TEXT,
+        numero_cuenta VARCHAR(100),
+        referencia_pago VARCHAR(100),
+        monto NUMERIC(10,2) DEFAULT 0,
+        periodicidad VARCHAR(30),
+        proxima_fecha_pago DATE,
+        estado_pago VARCHAR(20) DEFAULT 'PENDIENTE',
+        observaciones TEXT
+      );
+    `);
+
+    // Insertar Sucursales Iniciales si la tabla está vacía
+    const checkSucs = await pool.query("SELECT COUNT(*) FROM sucursales");
+    if (parseInt(checkSucs.rows[0].count, 10) === 0) {
+      await pool.query(`
+        INSERT INTO sucursales (nombre, direccion, activo, en_uso) VALUES 
+        ('Matriz Tuxtla', 'Av. Central #123 Tuxtla', TRUE, FALSE),
+        ('CEDIS Comitán', 'Comitán Centro', TRUE, FALSE);
+      `);
+    }
+
+    // Insertar Usuario FerreAdmin si la tabla está vacía
+    const checkAdmin = await pool.query("SELECT * FROM usuarios_sistema WHERE usuario = 'FerreAdmin'");
+    if (checkAdmin.rows.length === 0) {
+      await pool.query(`
+        INSERT INTO usuarios_sistema (usuario, password, password_hash, nombre_completo, puesto, departamento, permisos, modulos, activo)
+        VALUES ('FerreAdmin', 'FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', 'Sistemas', 'TODOS', 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS', TRUE);
+      `);
+    }
+  } catch (err) {
+    console.error("Error al verificar/inicializar las tablas en PostgreSQL:", err);
+  }
+};
+
+initDB();
+
+/* ==========================================================================
+   1. SUCURSALES
    ========================================================================== */
 router.get('/sucursales', async (req, res) => {
   try {
@@ -26,7 +162,6 @@ router.post('/sucursales', async (req, res) => {
     const { nombre, direccion, telefono } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
 
-    // Si ya existía inactiva, la reactivamos
     const exist = await pool.query("SELECT id_sucursal FROM sucursales WHERE LOWER(nombre) = LOWER($1)", [nombre.trim()]);
     if (exist.rows.length > 0) {
       const act = await pool.query(
@@ -55,21 +190,9 @@ router.delete('/sucursales/:id', async (req, res) => {
   }
 });
 
-router.put('/sucursales/:id/estado-uso', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { en_uso } = req.body;
-    await pool.query("UPDATE sucursales SET en_uso = $1 WHERE id_sucursal = $2", [en_uso, id]);
-    res.json({ mensaje: 'Estado de uso actualizado.' });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al cambiar estado de uso.' });
-  }
-});
-
 /* ==========================================================================
-   2. REPARTIDORES (Con PIN, Modificación, Cambio de Sucursal y Borrado Lógico)
+   2. REPARTIDORES
    ========================================================================== */
-
 router.get('/repartidores', async (req, res) => {
   try {
     let query = `
@@ -91,17 +214,14 @@ router.get('/repartidores', async (req, res) => {
       ORDER BY u.nombre ASC;
     `;
     const resu = await pool.query(query);
-    
-    // Mapear el estatus según el resultado booleano en_recorrido
     const lista = resu.rows.map(r => ({
       ...r,
       estatus: r.en_recorrido ? 'EN_RECORRIDO' : 'LIBRE'
     }));
-
     res.json(lista);
   } catch (e) {
     console.error("Error al consultar repartidores:", e);
-    res.status(500).json({ error: 'Error al consultar repartidores: ' + e.message });
+    res.status(500).json({ error: 'Error al consultar repartidores.' });
   }
 });
 
@@ -142,7 +262,6 @@ router.put('/repartidores/:id_usuario/pin', async (req, res) => {
   }
 });
 
-// Actualizar datos, teléfono o sucursal de un repartidor
 router.put('/repartidores/:id_usuario/datos', async (req, res) => {
   try {
     const { id_usuario } = req.params;
@@ -168,7 +287,6 @@ router.put('/repartidores/:id_usuario/datos', async (req, res) => {
       contador++;
     }
 
-    // Quitar la última coma y espacio sobrante
     query = query.slice(0, -2);
     query += ` WHERE id_usuario = $${contador} RETURNING *;`;
     params.push(id_usuario);
@@ -176,33 +294,22 @@ router.put('/repartidores/:id_usuario/datos', async (req, res) => {
     const actual = await pool.query(query, params);
     res.json({ mensaje: 'Repartidor actualizado correctamente.', repartidor: actual.rows[0] });
   } catch (e) {
-    console.error("Error al actualizar repartidor:", e);
     res.status(500).json({ error: 'Error al actualizar repartidor.' });
   }
 });
 
-// Eliminar repartidor (Borrado lógico)
 router.delete('/repartidores/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const resultado = await pool.query(
-      "UPDATE usuarios SET activo = FALSE WHERE id_usuario = $1 RETURNING *", 
-      [id]
-    );
-
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ error: 'Repartidor no encontrado.' });
-    }
-
+    await pool.query("UPDATE usuarios SET activo = FALSE WHERE id_usuario = $1", [id]);
     res.json({ mensaje: 'Repartidor eliminado correctamente.' });
   } catch (e) {
-    console.error("Error al eliminar repartidor:", e);
-    res.status(500).json({ error: 'Error al eliminar repartidor: ' + e.message });
+    res.status(500).json({ error: 'Error al eliminar repartidor.' });
   }
 });
 
 /* ==========================================================================
-   3. MOTOS / VEHÍCULOS (Obtener, Crear / Reactivar, Mantenimiento, Eliminar)
+   3. MOTOS / VEHÍCULOS
    ========================================================================== */
 router.get('/motos', async (req, res) => {
   try {
@@ -214,17 +321,15 @@ router.get('/motos', async (req, res) => {
       WHERE v.activo = TRUE
     `;
     const params = [];
-
     if (id_sucursal) {
       query += " AND v.id_sucursal = $1";
       params.push(parseInt(id_sucursal, 10));
     }
     query += " ORDER BY v.id_vehiculo ASC";
 
-    const resu = await pool.query(query);
+    const resu = await pool.query(query, params);
     res.json(resu.rows);
   } catch (e) {
-    console.error("Error al consultar motos:", e);
     res.status(500).json({ error: 'Error al consultar motos.' });
   }
 });
@@ -235,7 +340,6 @@ router.post('/motos', async (req, res) => {
     if (!placa || !id_sucursal) return res.status(400).json({ error: 'Placa y sucursal son obligatorias.' });
 
     const placaLimpia = placa.trim().toUpperCase();
-
     const motoExistente = await pool.query("SELECT id_vehiculo FROM vehiculos WHERE UPPER(placa) = $1", [placaLimpia]);
 
     if (motoExistente.rows.length > 0) {
@@ -258,43 +362,10 @@ router.post('/motos', async (req, res) => {
     const nuevaMoto = await pool.query(queryInsert, [placaLimpia, marca_modelo || '', id_sucursal, kilometraje_actual || 0]);
     res.status(201).json(nuevaMoto.rows[0]);
   } catch (e) {
-    console.error('Error al registrar moto:', e);
-    res.status(500).json({ error: 'Error al registrar o reactivar la moto.' });
+    res.status(500).json({ error: 'Error al registrar la moto.' });
   }
 });
 
-router.put('/motos/:id_vehiculo/mantenimiento', async (req, res) => {
-  try {
-    const { id_vehiculo } = req.params;
-    const { estado, detalles_mecanicos } = req.body;
-
-    const esDisponible = estado === 'DISPONIBLE';
-    const detalleLimpio = esDisponible ? null : (detalles_mecanicos || null);
-
-    const query = `
-      UPDATE vehiculos 
-      SET estado = $1, detalles_mecanicos = $2, requiere_mantenimiento = $3 
-      WHERE id_vehiculo = $4 
-      RETURNING *
-    `;
-    const actual = await pool.query(query, [estado, detalleLimpio, !esDisponible, id_vehiculo]);
-    res.json({ mensaje: 'Estado mecánico actualizado.', moto: actual.rows[0] });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al actualizar estado mecánico.' });
-  }
-});
-
-router.delete('/motos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await pool.query("UPDATE vehiculos SET activo = FALSE WHERE id_vehiculo = $1", [id]);
-    res.json({ mensaje: 'Moto eliminada correctamente.' });
-  } catch (e) {
-    res.status(500).json({ error: 'Error al eliminar moto.' });
-  }
-});
-
-// Actualizar todos los datos de una moto
 router.put('/motos/:id', async (req, res) => {
   const { id } = req.params;
   const { placa, marca_modelo, id_sucursal, kilometraje_actual } = req.body;
@@ -311,52 +382,21 @@ router.put('/motos/:id', async (req, res) => {
   }
 });
 
-router.put('/motos/:id_vehiculo/kilometraje', async (req, res) => {
+router.delete('/motos/:id', async (req, res) => {
   try {
-    const { id_vehiculo } = req.params;
-    const { kilometraje_actual } = req.body;
-
-    if (kilometraje_actual === undefined || isNaN(kilometraje_actual)) {
-      return res.status(400).json({ error: 'Ingresa un kilometraje válido.' });
-    }
-
-    const query = "UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2 RETURNING *";
-    const actual = await pool.query(query, [parseInt(kilometraje_actual, 10), id_vehiculo]);
-    res.json({ mensaje: 'Kilometraje actualizado correctamente.', moto: actual.rows[0] });
+    const { id } = req.params;
+    await pool.query("UPDATE vehiculos SET activo = FALSE WHERE id_vehiculo = $1", [id]);
+    res.json({ mensaje: 'Moto eliminada correctamente.' });
   } catch (e) {
-    res.status(500).json({ error: 'Error al actualizar el kilometraje.' });
-  }
-});
-
-router.put('/motos/:id_vehiculo/datos', async (req, res) => {
-  try {
-    const { id_vehiculo } = req.params;
-    const { placa, marca_modelo } = req.body;
-
-    if (!placa || !marca_modelo) {
-      return res.status(400).json({ error: 'La placa y la marca/modelo son obligatorias.' });
-    }
-
-    const query = "UPDATE vehiculos SET placa = $1, marca_modelo = $2 WHERE id_vehiculo = $3 RETURNING *";
-    const actual = await pool.query(query, [placa, marca_modelo, id_vehiculo]);
-    res.json({ mensaje: 'Datos de la moto actualizados correctamente.', moto: actual.rows[0] });
-  } catch (e) {
-    console.error("Error al actualizar datos de moto:", e);
-    res.status(500).json({ error: 'Error al actualizar datos de la moto.' });
+    res.status(500).json({ error: 'Error al eliminar moto.' });
   }
 });
 
 /* ==========================================================================
-   4. MONITOREO EN VIVO (Con notas y fotos del odómetro)
+   4. MONITOREO EN VIVO
    ========================================================================== */
-// 1. Monitoreo ligero: devuelve las banderas booleanas sin el texto pesado en Base64
 router.get('/admin/monitoreo', async (req, res) => {
   try {
-    // Asegurar columnas requeridas automáticamente
-    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS notas TEXT;");
-    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_inicio TEXT;");
-    await pool.query("ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_fin TEXT;");
-
     const { fecha_inicio, fecha_fin } = req.query;
     let queryAdmin = `
       SELECT 
@@ -398,12 +438,10 @@ router.get('/admin/monitoreo', async (req, res) => {
     const resultado = await pool.query(queryAdmin, params);
     res.json(resultado.rows);
   } catch (error) {
-    console.error("Error en monitoreo:", error);
     res.status(500).json({ error: 'Error al consultar monitoreo.' });
   }
 });
 
-// 2. Nueva ruta para obtener la foto en Base64 únicamente cuando el usuario hace clic
 router.get('/admin/viaje/:id/foto/:tipo', async (req, res) => {
   const { id, tipo } = req.params;
   const campoFoto = tipo === 'inicio' ? 'foto_odometro_inicio' : 'foto_odometro_fin';
@@ -414,242 +452,18 @@ router.get('/admin/viaje/:id/foto/:tipo', async (req, res) => {
     }
     res.json({ foto: result.rows[0][campoFoto] });
   } catch (error) {
-    console.error("Error al obtener foto del viaje:", error);
     res.status(500).json({ error: 'Error al consultar foto del viaje.' });
   }
 });
 
 /* ==========================================================================
-   5. OPERACIONES DE REPARTIDORES EN APP MÓVIL
+   5. AUTENTICACIÓN Y AUDITORÍA
    ========================================================================== */
-
-router.get('/repartidor/:id_usuario/estado', async (req, res) => {
-  try {
-    const { id_usuario } = req.params;
-
-    const turnoRes = await pool.query(
-      "SELECT * FROM turnos_diarios WHERE id_usuario = $1 AND estado = 'ABIERTO' ORDER BY id_turno DESC LIMIT 1",
-      [id_usuario]
-    );
-
-    if (turnoRes.rows.length === 0) {
-      const motoRes = await pool.query(
-        "SELECT kilometraje_actual FROM vehiculos WHERE id_sucursal = (SELECT id_sucursal FROM usuarios WHERE id_usuario = $1) AND activo = TRUE LIMIT 1",
-        [id_usuario]
-      );
-      const kmMoto = motoRes.rows.length > 0 ? motoRes.rows[0].kilometraje_actual : 0;
-
-      return res.json({ esPrimerViaje: true, viajePendiente: null, ultimoKm: kmMoto });
-    }
-
-    const id_turno = turnoRes.rows[0].id_turno;
-    const viajePendienteRes = await pool.query(
-      "SELECT * FROM viajes_recorridos WHERE id_turno = $1 AND estado_viaje = 'EN_PROCESO' LIMIT 1",
-      [id_turno]
-    );
-
-    const ultimoKmRes = await pool.query(
-      "SELECT COALESCE(km_final, km_inicial) as ultimo_km FROM viajes_recorridos WHERE id_turno = $1 ORDER BY id_viaje DESC LIMIT 1",
-      [id_turno]
-    );
-
-    const ultimoKm = ultimoKmRes.rows.length > 0 ? ultimoKmRes.rows[0].ultimo_km : turnoRes.rows[0].km_inicial;
-
-    res.json({
-      esPrimerViaje: false,
-      id_turno: id_turno,
-      viajePendiente: viajePendienteRes.rows[0] || null,
-      ultimoKm: ultimoKm
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al consultar estado del repartidor.' });
-  }
-});
-
-// INICIAR VIAJE
-router.post('/viajes/inicio', async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const { 
-      id_usuario, id_vehiculo, id_sucursal, direccion_destino, 
-      forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio 
-    } = req.body;
-
-    if (!id_usuario || !id_vehiculo) {
-      return res.status(400).json({ error: 'Falta repartidor o moto asignada para esta sucursal.' });
-    }
-
-    await client.query('BEGIN');
-
-    let turnoRes = await client.query(
-      "SELECT id_turno FROM turnos_diarios WHERE id_usuario = $1 AND estado = 'ABIERTO' LIMIT 1",
-      [id_usuario]
-    );
-
-    let id_turno;
-    if (turnoRes.rows.length === 0) {
-      const nuevoTurno = await client.query(
-        "INSERT INTO turnos_diarios (id_usuario, id_vehiculo, id_sucursal, fecha, hora_inicio, km_inicial, estado) VALUES ($1, $2, $3, CURRENT_DATE, NOW(), $4, 'ABIERTO') RETURNING id_turno",
-        [id_usuario, id_vehiculo, id_sucursal, km_inicial]
-      );
-      id_turno = nuevoTurno.rows[0].id_turno;
-    } else {
-      id_turno = turnoRes.rows[0].id_turno;
-    }
-
-    const viajeActivo = await client.query(
-      "SELECT id_viaje FROM viajes_recorridos WHERE id_turno = $1 AND estado_viaje = 'EN_PROCESO'",
-      [id_turno]
-    );
-
-    if (viajeActivo.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ 
-        error: 'CANDADO ACTIVO: Debes registrar el kilometraje final del recorrido anterior antes de iniciar uno nuevo.' 
-      });
-    }
-
-    const numViajes = await client.query("SELECT COUNT(*) FROM viajes_recorridos WHERE id_turno = $1", [id_turno]);
-    const numViajeActual = parseInt(numViajes.rows[0].count, 10) + 1;
-
-    const queryViaje = `
-      INSERT INTO viajes_recorridos 
-        (id_turno, id_usuario, numero_viaje_del_dia, direccion_destino, forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio, estado_viaje)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'EN_PROCESO')
-      RETURNING *;
-    `;
-    const valuesViaje = [
-      id_turno, id_usuario, numViajeActual, direccion_destino, forma_pago_esperada, 
-      fondo_cambio_recibido || 0, km_inicial, foto_odometro_inicio || null
-    ];
-    const nuevoViaje = await client.query(queryViaje, valuesViaje);
-
-    await client.query("UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", [km_inicial, id_vehiculo]);
-
-    await client.query('COMMIT');
-    res.status(201).json({ mensaje: 'Viaje iniciado correctamente', viaje: nuevoViaje.rows[0] });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error("Error al iniciar viaje:", error);
-    res.status(500).json({ error: 'Error al iniciar el viaje.' });
-  } finally {
-    client.release();
-  }
-});
-
-// FINALIZAR RECORRIDO
-router.post('/viajes/finalizar', async (req, res) => {
-  try {
-    const { id_viaje, km_final, notas, foto_odometro_fin } = req.body;
-
-    if (!id_viaje || km_final === undefined || isNaN(km_final)) {
-      return res.status(400).json({ error: 'Proporciona el ID del viaje y un kilometraje final válido.' });
-    }
-
-    const viajeRes = await pool.query(`
-      SELECT vr.km_inicial, t.id_vehiculo 
-      FROM viajes_recorridos vr
-      LEFT JOIN turnos_diarios t ON vr.id_turno = t.id_turno
-      WHERE vr.id_viaje = $1
-    `, [parseInt(id_viaje, 10)]);
-
-    if (viajeRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Viaje no encontrado.' });
-    }
-
-    const { id_vehiculo, km_inicial } = viajeRes.rows[0];
-
-    if (parseInt(km_final, 10) <= parseInt(km_inicial, 10)) {
-      return res.status(400).json({ error: `El kilometraje final debe ser mayor al inicial (${km_inicial} km).` });
-    }
-
-    const queryViaje = `
-      UPDATE viajes_recorridos 
-      SET km_final = $1, notas = $2, foto_odometro_fin = $3, estado_viaje = 'FINALIZADO', fecha_hora_fin = NOW()
-      WHERE id_viaje = $4 
-      RETURNING *;
-    `;
-    const viajeActualizado = await pool.query(queryViaje, [
-      parseInt(km_final, 10), 
-      notas || null, 
-      foto_odometro_fin || null, 
-      parseInt(id_viaje, 10)
-    ]);
-
-    if (id_vehiculo) {
-      await pool.query(
-        "UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2", 
-        [parseInt(km_final, 10), id_vehiculo]
-      );
-    }
-
-    res.json({ mensaje: 'Recorrido finalizado correctamente.', viaje: viajeActualizado.rows[0] });
-  } catch (e) {
-    console.error("Error al finalizar viaje:", e);
-    res.status(500).json({ error: 'Error al finalizar el recorrido: ' + e.message });
-  }
-});
-
-// ==========================================
-// 1. AUTENTICACIÓN Y AUDITORÍA
-// ==========================================
-
-// Login de Usuarios del Sistema
-
 router.post('/auth/login', async (req, res) => {
   const { usuario, password } = req.body;
   try {
-    // 1. Crear automáticamente las tablas si aún no existen en PostgreSQL
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS usuarios_sistema (
-        id_usuario SERIAL PRIMARY KEY,
-        usuario VARCHAR(50) UNIQUE NOT NULL,
-        password VARCHAR(100) NOT NULL,
-        nombre_completo VARCHAR(100),
-        puesto VARCHAR(50),
-        id_sucursal INT,
-        permisos TEXT DEFAULT 'TODOS',
-        modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS',
-        activo BOOLEAN DEFAULT true,
-        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // Asegurar columnas en caso de que la tabla ya existiera antes
-    await pool.query(`
-      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS permisos TEXT DEFAULT 'TODOS';
-      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS';
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS bitacora_auditoria (
-        id_bitacora SERIAL PRIMARY KEY,
-        usuario VARCHAR(50),
-        accion VARCHAR(100),
-        detalles TEXT,
-        fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // 2. Insertar o actualizar usuario FerreAdmin por defecto con accesos completos
-    const checkAdmin = await pool.query("SELECT * FROM usuarios_sistema WHERE usuario = 'FerreAdmin'");
-    if (checkAdmin.rows.length === 0) {
-      await pool.query(`
-        INSERT INTO usuarios_sistema (usuario, password, nombre_completo, puesto, permisos, modulos, activo)
-        VALUES ('FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', 'TODOS', 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS', true);
-      `);
-    } else {
-      await pool.query(`
-        UPDATE usuarios_sistema 
-        SET permisos = 'TODOS', 
-            modulos = 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS' 
-        WHERE usuario = 'FerreAdmin';
-      `);
-    }
-
-    // 3. Consultar usuario e intentar iniciar sesión
     const result = await pool.query(
-      "SELECT * FROM usuarios_sistema WHERE usuario = $1 AND password = $2 AND activo = true",
+      "SELECT * FROM usuarios_sistema WHERE usuario = $1 AND (password = $2 OR password_hash = $2) AND activo = true",
       [usuario, password]
     );
 
@@ -659,27 +473,24 @@ router.post('/auth/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // 4. Registrar en la bitácora de auditoría sin bloquear el flujo principal
     try {
       await pool.query(
-        "INSERT INTO bitacora_auditoria (usuario, accion, detalles) VALUES ($1, $2, $3)",
-        [user.usuario, 'INICIO_SESION', 'Inicio de sesión exitoso desde el panel web.']
+        "INSERT INTO bitacora_auditoria (usuario, usuario_nombre, accion, detalles) VALUES ($1, $2, $3, $4)",
+        [user.usuario, user.nombre_completo, 'INICIO_SESION', 'Inicio de sesión exitoso desde el panel web.']
       );
-    } catch (audError) {
-      console.error("Error al guardar bitácora de auditoría:", audError);
-    }
+    } catch (audError) {}
 
-    // 5. Responder con los datos del usuario INCLUYENDO permisos y módulos
     res.json({
       ok: true,
       usuario: {
-        id_usuario: user.id_usuario,
+        id_usuario: user.id_usuario_sys,
         usuario: user.usuario,
         nombre_completo: user.nombre_completo,
         puesto: user.puesto,
         id_sucursal: user.id_sucursal,
         permisos: user.permisos || 'TODOS',
-        modulos: user.modulos || 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS'
+        modulos: user.modulos || 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS',
+        es_admin_supremo: true
       }
     });
 
@@ -689,37 +500,9 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-// Registrar evento en bitácora de auditoría
-router.post('/auditoria/registrar', async (req, res) => {
-  const { id_usuario_sys, usuario_nombre, accion, modulo, detalles } = req.body;
-  try {
-    await db.query(
-      `INSERT INTO bitacora_auditoria (id_usuario_sys, usuario_nombre, accion, modulo, detalles)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id_usuario_sys, usuario_nombre, accion, modulo, detalles]
-    );
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Obtener registros de bitácora
-router.get('/auditoria', async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM bitacora_auditoria ORDER BY fecha_hora DESC LIMIT 100`
-    );
-    res.json(result.rows);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ==========================================
-// 2. GESTIÓN DE USUARIOS DEL SISTEMA (ACTUALIZADO)
-// ==========================================
-
+/* ==========================================================================
+   6. USUARIOS Y PAGOS
+   ========================================================================== */
 router.get('/usuarios-sistema', async (req, res) => {
   try {
     const result = await pool.query(
@@ -735,28 +518,19 @@ router.get('/usuarios-sistema', async (req, res) => {
   }
 });
 
-// Registrar o Reactivar Usuario
 router.post('/usuarios-sistema', async (req, res) => {
   const { id_sucursal, nombre_completo, usuario, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
   try {
-    // Verificar si el usuario ya existe en la base de datos (activo o inactivo)
     const check = await pool.query(`SELECT * FROM usuarios_sistema WHERE usuario = $1`, [usuario]);
 
     if (check.rows.length > 0) {
       const userExistente = check.rows[0];
       if (!userExistente.activo) {
-        // Si estaba inactivo (previamente borrado), lo reactivamos con la nueva información
         const result = await pool.query(
           `UPDATE usuarios_sistema 
-           SET id_sucursal=$1, nombre_completo=$2, password_hash=$3, puesto=$4, departamento=$5, telefono=$6, permisos=$7, activo=TRUE 
+           SET id_sucursal=$1, nombre_completo=$2, password=$3, password_hash=$3, puesto=$4, departamento=$5, telefono=$6, permisos=$7, activo=TRUE 
            WHERE id_usuario_sys=$8 RETURNING *`,
           [id_sucursal || null, nombre_completo, password, puesto, departamento, telefono, JSON.stringify(permisos), userExistente.id_usuario_sys]
-        );
-
-        await pool.query(
-          `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
-           VALUES ($1, 'REACTIVAR_USUARIO', 'USUARIOS', 'Se reactivó el usuario ' || $2)`,
-          [usuario_operador || 'Admin', usuario]
         );
 
         return res.json(result.rows[0]);
@@ -765,17 +539,10 @@ router.post('/usuarios-sistema', async (req, res) => {
       }
     }
 
-    // Si es un usuario completamente nuevo
     const result = await pool.query(
-      `INSERT INTO usuarios_sistema (id_sucursal, nombre_completo, usuario, password_hash, puesto, departamento, telefono, permisos)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO usuarios_sistema (id_sucursal, nombre_completo, usuario, password, password_hash, puesto, departamento, telefono, permisos)
+       VALUES ($1, $2, $3, $4, $4, $5, $6, $7, $8) RETURNING *`,
       [id_sucursal || null, nombre_completo, usuario, password, puesto, departamento, telefono, JSON.stringify(permisos)]
-    );
-
-    await pool.query(
-      `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
-       VALUES ($1, 'CREAR_USUARIO', 'USUARIOS', 'Se creó el usuario ' || $2)`,
-      [usuario_operador || 'Admin', usuario]
     );
 
     res.json(result.rows[0]);
@@ -784,53 +551,15 @@ router.post('/usuarios-sistema', async (req, res) => {
   }
 });
 
-// Editar/Actualizar Usuario Existente
-router.put('/usuarios-sistema/:id', async (req, res) => {
+router.delete('/usuarios-sistema/:id', async (req, res) => {
   const { id } = req.params;
-  const { id_sucursal, nombre_completo, password, puesto, departamento, telefono, permisos, usuario_operador } = req.body;
   try {
-    let query = `UPDATE usuarios_sistema SET id_sucursal=$1, nombre_completo=$2, puesto=$3, departamento=$4, telefono=$5, permisos=$6`;
-    let params = [id_sucursal || null, nombre_completo, puesto, departamento, telefono, JSON.stringify(permisos)];
-
-    if (password && password.trim() !== '') {
-      query += `, password_hash=$7 WHERE id_usuario_sys=$8`;
-      params.push(password, id);
-    } else {
-      query += ` WHERE id_usuario_sys=$7`;
-      params.push(id);
-    }
-
-    await pool.query(query, params);
-
-    await pool.query(
-      `INSERT INTO bitacora_auditoria (usuario_nombre, accion, modulo, detalles)
-       VALUES ($1, 'MODIFICAR_USUARIO', 'USUARIOS', 'Se modificó el usuario ID ' || $2)`,
-      [usuario_operador || 'Admin', id]
-    );
-
+    await pool.query(`UPDATE usuarios_sistema SET activo = FALSE WHERE id_usuario_sys = $1`, [id]);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
-
-// Eliminar Usuario Permanentemente
-router.delete('/usuarios-sistema/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Intenta borrar el registro físicamente
-    await pool.query(`DELETE FROM usuarios_sistema WHERE id_usuario_sys = $1`, [id]);
-    res.json({ ok: true });
-  } catch (e) {
-    // Si la clave foránea impide el borrado directo, realiza soft-delete
-    await pool.query(`UPDATE usuarios_sistema SET activo = FALSE WHERE id_usuario_sys = $1`, [id]);
-    res.json({ ok: true });
-  }
-});
-
-// ==========================================
-// 3. CONTROL DE PAGOS Y SERVICIOS
-// ==========================================
 
 router.get('/pagos-servicios', async (req, res) => {
   try {
@@ -848,35 +577,13 @@ router.get('/pagos-servicios', async (req, res) => {
 });
 
 router.post('/pagos-servicios', async (req, res) => {
-  const { 
-    id_sucursal, 
-    tipo_servicio, 
-    proveedor_descripcion, 
-    numero_cuenta, 
-    referencia_pago, 
-    monto, 
-    periodicidad, 
-    proxima_fecha_pago, 
-    observaciones 
-  } = req.body;
-
+  const { id_sucursal, tipo_servicio, proveedor_descripcion, numero_cuenta, referencia_pago, monto, periodicidad, proxima_fecha_pago, observaciones } = req.body;
   try {
     const result = await pool.query(
       `INSERT INTO pagos_servicios (
          id_sucursal, tipo_servicio, proveedor_descripcion, numero_cuenta, referencia_pago, monto, periodicidad, proxima_fecha_pago, observaciones
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [
-        id_sucursal, 
-        tipo_servicio, 
-        proveedor_descripcion, 
-        numero_cuenta || '', 
-        referencia_pago || '', 
-        monto || 0, 
-        periodicidad, 
-        proxima_fecha_pago, 
-        observaciones || ''
-      ]
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [id_sucursal, tipo_servicio, proveedor_descripcion, numero_cuenta || '', referencia_pago || '', monto || 0, periodicidad, proxima_fecha_pago, observaciones || '']
     );
     res.json(result.rows[0]);
   } catch (e) {
@@ -889,9 +596,7 @@ router.put('/pagos-servicios/:id/marcar-pagado', async (req, res) => {
   const { nueva_fecha_pago } = req.body;
   try {
     await db.query(
-      `UPDATE pagos_servicios 
-       SET estado_pago = 'PAGADO', proxima_fecha_pago = $1 
-       WHERE id_servicio = $2`,
+      `UPDATE pagos_servicios SET estado_pago = 'PAGADO', proxima_fecha_pago = $1 WHERE id_servicio = $2`,
       [nueva_fecha_pago, id]
     );
     res.json({ ok: true });
