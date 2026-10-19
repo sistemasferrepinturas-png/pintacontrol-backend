@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression'); // 👈 1. Importar compresión
 const cors = require('cors');
 const path = require('path');
 const routes = require('./routes');
@@ -7,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(compression()); // 👈 2. Habilitar la compresión HTTP antes de los otros middlewares
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
