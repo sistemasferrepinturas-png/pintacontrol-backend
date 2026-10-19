@@ -115,12 +115,16 @@ const initDB = async () => {
       );
     `);
 
-    // 2. Asegurar columnas en tablas previamente creadas
+// 2. Asegurar columnas en tablas previamente creadas
     await pool.query(`
       ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS password VARCHAR(100);
       ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS password_hash VARCHAR(100);
       ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS permisos TEXT DEFAULT 'TODOS';
       ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS';
+
+      ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);
+      ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+      ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS en_uso BOOLEAN DEFAULT FALSE;
     `);
 
     // 3. Insertar Sucursales Iniciales si la tabla está vacía
