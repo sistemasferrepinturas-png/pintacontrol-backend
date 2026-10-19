@@ -832,27 +832,35 @@ function renderizarTablaMonitoreo(datos) {
       } catch (e) {}
     }
 
-    async function guardarSucursal() {
-      const nombre = document.getElementById('sucNombre').value;
-      const direccion = document.getElementById('sucDireccion').value;
-      const telefono = document.getElementById('sucTelefono').value;
+async function guardarSucursal() {
+  const nombre = document.getElementById('sucNombre').value;
+  const direccion = document.getElementById('sucDireccion').value;
+  const telefono = document.getElementById('sucTelefono').value;
 
-      if (!nombre) return alert('Ingresa el nombre de la sucursal.');
+  if (!nombre) return alert('Ingresa el nombre de la sucursal.');
 
-      const res = await fetch(`${API_URL}/sucursales`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, direccion, telefono })
-      });
+  try {
+    const res = await fetch(`${API_URL}/sucursales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, direccion, telefono })
+    });
 
-      if (res.ok) {
-        alert('Sucursal registrada con éxito.');
-        document.getElementById('sucNombre').value = '';
-        document.getElementById('sucDireccion').value = '';
-        document.getElementById('sucTelefono').value = '';
-        cargarSucursales();
-      }
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('Sucursal registrada con éxito.');
+      document.getElementById('sucNombre').value = '';
+      document.getElementById('sucDireccion').value = '';
+      document.getElementById('sucTelefono').value = '';
+      cargarSucursales();
+    } else {
+      alert(data.error || 'Error al guardar la sucursal.');
     }
+  } catch (err) {
+    alert('Error al conectar con el servidor.');
+  }
+}
 
     async function eliminarSucursal(id) {
       if (!confirm('¿Eliminar esta sucursal?')) return;
