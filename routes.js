@@ -8,6 +8,7 @@ const db = pool;
    ========================================================================== */
 const initDB = async () => {
   try {
+    // 1. Crear tablas si no existen
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sucursales (
         id_sucursal SERIAL PRIMARY KEY,
@@ -114,7 +115,15 @@ const initDB = async () => {
       );
     `);
 
-    // Insertar Sucursales Iniciales si la tabla está vacía
+    // 2. Asegurar columnas en tablas previamente creadas
+    await pool.query(`
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS password VARCHAR(100);
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS password_hash VARCHAR(100);
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS permisos TEXT DEFAULT 'TODOS';
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS';
+    `);
+
+    // 3. Insertar Sucursales Iniciales si la tabla está vacía
     const checkSucs = await pool.query("SELECT COUNT(*) FROM sucursales");
     if (parseInt(checkSucs.rows[0].count, 10) === 0) {
       await pool.query(`
@@ -124,12 +133,20 @@ const initDB = async () => {
       `);
     }
 
-    // Insertar Usuario FerreAdmin si la tabla está vacía
+    // 4. Insertar Usuario FerreAdmin si la tabla está vacía
     const checkAdmin = await pool.query("SELECT * FROM usuarios_sistema WHERE usuario = 'FerreAdmin'");
     if (checkAdmin.rows.length === 0) {
       await pool.query(`
         INSERT INTO usuarios_sistema (usuario, password, password_hash, nombre_completo, puesto, departamento, permisos, modulos, activo)
         VALUES ('FerreAdmin', 'FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', 'Sistemas', 'TODOS', 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS', TRUE);
+      `);
+    } else {
+      await pool.query(`
+        UPDATE usuarios_sistema 
+        SET password_hash = COALESCE(password_hash, password, 'FerreAdmin'),
+            permisos = 'TODOS',
+            modulos = 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS'
+        WHERE usuario = 'FerreAdmin';
       `);
     }
   } catch (err) {
