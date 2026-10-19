@@ -349,6 +349,7 @@ router.put('/motos/:id_vehiculo/datos', async (req, res) => {
 /* ==========================================================================
    4. MONITOREO EN VIVO (Con notas y fotos del odómetro)
    ========================================================================== */
+// 1. Monitoreo ligero: devuelve las banderas booleanas sin el texto pesado en Base64
 router.get('/admin/monitoreo', async (req, res) => {
   try {
     // Asegurar columnas requeridas automáticamente
@@ -376,8 +377,8 @@ router.get('/admin/monitoreo', async (req, res) => {
         vr.fecha_hora_inicio,
         vr.fecha_hora_fin,
         vr.notas,
-        vr.foto_odometro_inicio,
-        vr.foto_odometro_fin
+        (vr.foto_odometro_inicio IS NOT NULL AND vr.foto_odometro_inicio != '') AS tiene_foto_inicio,
+        (vr.foto_odometro_fin IS NOT NULL AND vr.foto_odometro_fin != '') AS tiene_foto_fin
       FROM viajes_recorridos vr
       JOIN usuarios u ON vr.id_usuario = u.id_usuario
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
@@ -399,6 +400,22 @@ router.get('/admin/monitoreo', async (req, res) => {
   } catch (error) {
     console.error("Error en monitoreo:", error);
     res.status(500).json({ error: 'Error al consultar monitoreo.' });
+  }
+});
+
+// 2. Nueva ruta para obtener la foto en Base64 únicamente cuando el usuario hace clic
+router.get('/admin/viaje/:id/foto/:tipo', async (req, res) => {
+  const { id, tipo } = req.params;
+  const campoFoto = tipo === 'inicio' ? 'foto_odometro_inicio' : 'foto_odometro_fin';
+  try {
+    const result = await pool.query(`SELECT ${campoFoto} FROM viajes_recorridos WHERE id_viaje = $1`, [id]);
+    if (result.rows.length === 0 || !result.rows[0][campoFoto]) {
+      return res.status(404).json({ error: 'Foto no disponible' });
+    }
+    res.json({ foto: result.rows[0][campoFoto] });
+  } catch (error) {
+    console.error("Error al obtener foto del viaje:", error);
+    res.status(500).json({ error: 'Error al consultar foto del viaje.' });
   }
 });
 
