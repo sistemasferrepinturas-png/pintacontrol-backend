@@ -598,45 +598,76 @@ router.post('/viajes/finalizar', async (req, res) => {
 router.post('/auth/login', async (req, res) => {
   const { usuario, password } = req.body;
   try {
-    const result = await db.query(
-      `SELECT u.*, s.nombre as sucursal_nombre 
-       FROM usuarios_sistema u 
-       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal 
-       WHERE u.usuario = $1 AND u.activo = TRUE`,
-      [usuario]
+    // 1. Crear automáticamente las tablas si aún no existen en PostgreSQL
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS usuarios_sistema (
+        id_usuario SERIAL PRIMARY KEY,
+        usuario VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(100) NOT NULL,
+        nombre_completo VARCHAR(100),
+        puesto VARCHAR(50),
+        id_sucursal INT,
+        activo BOOLEAN DEFAULT true,
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bitacora_auditoria (
+        id_bitacora SERIAL PRIMARY KEY,
+        usuario VARCHAR(50),
+        accion VARCHAR(100),
+        detalles TEXT,
+        fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 2. Insertar usuario FerreAdmin por defecto si la tabla está vacía
+    const checkAdmin = await pool.query("SELECT * FROM usuarios_sistema WHERE usuario = 'FerreAdmin'");
+    if (checkAdmin.rows.length === 0) {
+      await pool.query(`
+        INSERT INTO usuarios_sistema (usuario, password, nombre_completo, puesto, activo)
+        VALUES ('FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', true);
+      `);
+    }
+
+    // 3. Consultar usuario e intentar iniciar sesión
+    const result = await pool.query(
+      "SELECT * FROM usuarios_sistema WHERE usuario = $1 AND password = $2 AND activo = true",
+      [usuario, password]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Usuario no encontrado o inactivo.' });
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
     }
 
     const user = result.rows[0];
-    if (user.password_hash !== password) {
-      return res.status(401).json({ error: 'Contraseña incorrecta.' });
+
+    // 4. Registrar en la bitácora de auditoría sin bloquear el flujo principal
+    try {
+      await pool.query(
+        "INSERT INTO bitacora_auditoria (usuario, accion, detalles) VALUES ($1, $2, $3)",
+        [user.usuario, 'INICIO_SESION', 'Inicio de sesión exitoso desde el panel web.']
+      );
+    } catch (audError) {
+      console.error("Error al guardar bitácora de auditoría:", audError);
     }
 
-    // Registrar inicio de sesión en auditoría
-    await db.query(
-      `INSERT INTO bitacora_auditoria (id_usuario_sys, usuario_nombre, accion, modulo, detalles)
-       VALUES ($1, $2, 'LOGIN', 'SISTEMA', 'Inicio de sesión exitoso')`,
-      [user.id_usuario_sys, user.nombre_completo]
-    );
-
+    // 5. Responder con los datos del usuario
     res.json({
       ok: true,
       usuario: {
-        id_usuario_sys: user.id_usuario_sys,
-        nombre_completo: user.nombre_completo,
+        id_usuario: user.id_usuario,
         usuario: user.usuario,
+        nombre_completo: user.nombre_completo,
         puesto: user.puesto,
-        departamento: user.departamento,
-        sucursal: user.sucursal_nombre || 'Todas',
-        es_admin_supremo: user.es_admin_supremo,
-        permisos: user.permisos
+        id_sucursal: user.id_sucursal
       }
     });
-  } catch (e) {
-    res.status(500).json({ error: 'Error en servidor: ' + e.message });
+
+  } catch (error) {
+    console.error("Error detallado en login:", error);
+    res.status(500).json({ error: error.message || 'Error interno del servidor al iniciar sesión.' });
   }
 });
 
