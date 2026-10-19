@@ -150,6 +150,15 @@ const initDB = async () => {
       ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_inicio TEXT;
       ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_fin TEXT;
       ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS notas TEXT;
+
+      // Asegurar columnas en usuarios_sistema
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS id_sucursal INT;
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS puesto VARCHAR(50);
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS departamento VARCHAR(50);
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS permisos TEXT DEFAULT 'TODOS';
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS';
       
     `);
 
