@@ -731,7 +731,7 @@ async function cargarComboSucursales() {
       actualizarMetricas(filtrados);
     }
 
-    function renderizarTablaMonitoreo(datos) {
+function renderizarTablaMonitoreo(datos) {
       const tbody = document.getElementById('tablaMonitoreo');
       if (!tbody) return;
       tbody.innerHTML = '';
@@ -749,11 +749,12 @@ async function cargarComboSucursales() {
         const horaInicio = v.fecha_hora_inicio ? new Date(v.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
         const horaFin = v.fecha_hora_fin ? new Date(v.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'En camino...';
 
-        const btnInicio = v.foto_odometro_inicio 
+        // 👈 Evaluamos las banderas booleanas ligeras en lugar del texto en Base64
+        const btnInicio = v.tiene_foto_inicio 
           ? `<button onclick="verFotoBase64('${v.id_viaje}', 'inicio')" class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-xs hover:bg-blue-500 hover:text-white transition">📸 Inicio</button>` 
           : '<span class="text-xs text-slate-500">-</span>';
 
-        const btnFin = v.foto_odometro_fin 
+        const btnFin = v.tiene_foto_fin 
           ? `<button onclick="verFotoBase64('${v.id_viaje}', 'fin')" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-xs hover:bg-emerald-500 hover:text-white transition">📸 Fin</button>` 
           : '<span class="text-xs text-slate-500">-</span>';
 
@@ -778,32 +779,37 @@ async function cargarComboSucursales() {
       });
     }
 
-    function verFotoBase64(idViaje, tipo) {
-      const viaje = datosMonitoreoGlobal.find(d => d.id_viaje == idViaje);
-      if (!viaje) return alert('No se encontraron los datos del viaje.');
+    // 👈 Nueva función que descarga la foto bajo demanda
+    async function verFotoBase64(idViaje, tipo) {
+      try {
+        const res = await fetch(`${API_URL}/admin/viaje/${idViaje}/foto/${tipo}`);
+        const data = await res.json();
 
-      const foto = tipo === 'inicio' ? viaje.foto_odometro_inicio : viaje.foto_odometro_fin;
-      if (!foto) return alert('No hay foto registrada.');
+        if (!res.ok || !data.foto) return alert('La foto no está disponible.');
 
-      const src = foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
+        const foto = data.foto;
+        const src = foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
 
-      const win = window.open("", "_blank");
-      win.document.write(`
-        <html>
-          <head>
-            <title>Foto Odómetro - Viaje #${viaje.numero_viaje_del_dia}</title>
-            <style>
-              body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-              h3 { color: #38bdf8; margin-bottom: 10px; }
-              img { max-width: 90%; max-height: 80vh; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-            </style>
-          </head>
-          <body>
-            <h3>Evidencia Odómetro (${tipo.toUpperCase()}) - Viaje #${viaje.numero_viaje_del_dia}</h3>
-            <img src="${src}" alt="Foto Odómetro" />
-          </body>
-        </html>
-      `);
+        const win = window.open("", "_blank");
+        win.document.write(`
+          <html>
+            <head>
+              <title>Evidencia Odómetro</title>
+              <style>
+                body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+                h3 { color: #38bdf8; margin-bottom: 12px; }
+                img { max-width: 90%; max-height: 80vh; border-radius: 12px; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+              </style>
+            </head>
+            <body>
+              <h3>Evidencia Odómetro (${tipo.toUpperCase()})</h3>
+              <img src="${src}" alt="Foto Odómetro" />
+            </body>
+          </html>
+        `);
+      } catch (e) {
+        alert('Error al descargar la foto del servidor.');
+      }
     }
 
     function actualizarMetricas(datos) {
