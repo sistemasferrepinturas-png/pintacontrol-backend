@@ -392,6 +392,103 @@ router.delete('/repartidores/:id', async (req, res) => {
 });
 
 /* ==========================================================================
+   2.1 VIAJES Y RECORRIDOS (INICIO Y FINALIZACIÓN)
+   ========================================================================== */
+
+// Endpoint para iniciar un nuevo viaje desde la App Móvil
+router.post('/viajes/inicio', async (req, res) => {
+  const { 
+    id_usuario, 
+    id_vehiculo, 
+    id_sucursal, 
+    direccion_destino, 
+    forma_pago_esperada, 
+    fondo_cambio_recibido, 
+    km_inicial, 
+    foto_odometro_inicio 
+  } = req.body;
+
+  try {
+    // 1. Contar cuántos viajes lleva el repartidor hoy
+    const countRes = await pool.query(
+      `SELECT COUNT(*) FROM viajes_recorridos 
+       WHERE id_usuario = $1 AND (DATE(fecha_hora_inicio) = CURRENT_DATE OR DATE(fecha_inicio) = CURRENT_DATE)`,
+      [id_usuario]
+    );
+    const numero_viaje = parseInt(countRes.rows[0].count, 10) + 1;
+
+    // 2. Insertar el nuevo recorrido en la base de datos
+    const insertRes = await pool.query(
+      `INSERT INTO viajes_recorridos 
+       (id_usuario, id_vehiculo, id_sucursal, direccion_destino, forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio, estatus, estado_viaje, numero_viaje_del_dia, fecha_hora_inicio, fecha_inicio) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'EN_CURSO', 'EN_CURSO', $9, NOW(), NOW()) 
+       RETURNING *`,
+      [
+        id_usuario, 
+        id_vehiculo || null, 
+        id_sucursal || null, 
+        direccion_destino, 
+        forma_pago_esperada || 'EFECTIVO', 
+        fondo_cambio_recibido || 0, 
+        km_inicial || 0, 
+        foto_odometro_inicio || null,
+        numero_viaje
+      ]
+    );
+
+    res.json({ viaje: insertRes.rows[0] });
+  } catch (error) {
+    console.error('Error al iniciar viaje:', error);
+    res.status(500).json({ error: error.message || 'Error interno al iniciar recorrido.' });
+  }
+});
+
+// Endpoint para finalizar un viaje desde la App Móvil
+router.post('/viajes/finalizar', async (req, res) => {
+  const { id_viaje, km_final, notas, foto_odometro_fin } = req.body;
+
+  try {
+    if (!id_viaje) {
+      return res.status(400).json({ error: 'El ID del viaje es obligatorio.' });
+    }
+
+    // 1. Actualizar estado y kilometraje final del recorrido
+    const updateRes = await pool.query(
+      `UPDATE viajes_recorridos 
+       SET km_final = $1, 
+           notas = $2, 
+           foto_odometro_fin = $3, 
+           estatus = 'FINALIZADO', 
+           estado_viaje = 'FINALIZADO', 
+           fecha_hora_fin = NOW() 
+       WHERE id_viaje = $4 
+       RETURNING *`,
+      [km_final, notas || '', foto_odometro_fin || null, id_viaje]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'No se encontró el viaje a finalizar.' });
+    }
+
+    const viajeFinalizado = updateRes.rows[0];
+
+    // 2. Si tenía moto asignada, actualizar su kilometraje_actual en la tabla vehiculos
+    if (viajeFinalizado.id_vehiculo) {
+      await pool.query(
+        `UPDATE vehiculos SET kilometraje_actual = $1 WHERE id_vehiculo = $2`,
+        [km_final, viajeFinalizado.id_vehiculo]
+      );
+    }
+
+    res.json({ ok: true, viaje: viajeFinalizado });
+  } catch (error) {
+    console.error('Error al finalizar viaje:', error);
+    res.status(500).json({ error: error.message || 'Error interno al finalizar el recorrido.' });
+  }
+});
+
+
+/* ==========================================================================
    3. MOTOS / VEHÍCULOS
    ========================================================================== */
 router.get('/motos', async (req, res) => {
