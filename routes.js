@@ -240,6 +240,42 @@ router.delete('/sucursales/:id', async (req, res) => {
 /* ==========================================================================
    2. REPARTIDORES
    ========================================================================== */
+
+// Endpoint para consultar el estado actual y último kilometraje del repartidor
+router.get('/repartidor/:id/estado', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // 1. Verificar si el repartidor tiene un viaje 'EN_CURSO'
+    const viajeRes = await pool.query(
+      `SELECT * FROM viajes_recorridos 
+       WHERE id_usuario = $1 AND estatus = 'EN_CURSO' 
+       ORDER BY id_viaje DESC LIMIT 1`,
+      [id]
+    );
+
+    // 2. Obtener el último kilometraje registrado en un viaje 'FINALIZADO'
+    const ultKmRes = await pool.query(
+      `SELECT km_final FROM viajes_recorridos 
+       WHERE id_usuario = $1 AND estatus = 'FINALIZADO' 
+       ORDER BY id_viaje DESC LIMIT 1`,
+      [id]
+    );
+
+    const viajePendiente = viajeRes.rows.length > 0 ? viajeRes.rows[0] : null;
+    const ultimoKm = ultKmRes.rows.length > 0 ? ultKmRes.rows[0].km_final : 0;
+
+    res.json({
+      viajePendiente,
+      ultimoKm
+    });
+  } catch (error) {
+    console.error('Error al consultar estado del repartidor:', error);
+    res.status(500).json({ error: 'Error interno al obtener el estado del repartidor.' });
+  }
+});
+
+
+
 router.get('/repartidores', async (req, res) => {
   try {
     let query = `
