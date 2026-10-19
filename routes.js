@@ -131,6 +131,26 @@ const initDB = async () => {
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(20) DEFAULT '1234';
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(20) DEFAULT 'REPARTIDOR';
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+      
+      ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS id_sucursal INT;
+      ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS kilometraje_actual INT DEFAULT 0;
+      ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS detalles_mecanicos TEXT;
+      ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS estado VARCHAR(30) DEFAULT 'DISPONIBLE';
+
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS id_usuario INT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS id_vehiculo INT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS id_sucursal INT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS estatus VARCHAR(30) DEFAULT 'EN_CURSO';
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS numero_viaje_del_dia INT DEFAULT 1;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS km_inicial INT DEFAULT 0;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS km_final INT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS direccion_destino TEXT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS forma_pago_esperada VARCHAR(30);
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS fondo_cambio_recibido NUMERIC(10,2) DEFAULT 0;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_inicio TEXT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS foto_odometro_fin TEXT;
+      ALTER TABLE viajes_recorridos ADD COLUMN IF NOT EXISTS notas TEXT;
+      
     `);
 
     // 3. Insertar Sucursales Iniciales si la tabla está vacía
