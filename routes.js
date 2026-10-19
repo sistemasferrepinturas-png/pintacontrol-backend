@@ -125,6 +125,12 @@ const initDB = async () => {
       ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);
       ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
       ALTER TABLE sucursales ADD COLUMN IF NOT EXISTS en_uso BOOLEAN DEFAULT FALSE;
+
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email VARCHAR(100);
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefono VARCHAR(50);
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(20) DEFAULT '1234';
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol VARCHAR(20) DEFAULT 'REPARTIDOR';
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
     `);
 
     // 3. Insertar Sucursales Iniciales si la tabla está vacía
