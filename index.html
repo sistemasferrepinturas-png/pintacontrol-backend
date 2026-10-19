@@ -913,28 +913,37 @@ async function guardarSucursal() {
       } catch (e) {}
     }
 
-    async function guardarRepartidor() {
-      const nombre = document.getElementById('repNombre').value;
-      const id_sucursal = document.getElementById('repSucursal').value;
-      const telefono = document.getElementById('repTelefono').value;
-      const pin = document.getElementById('repPin').value;
+async function guardarRepartidor() {
+  const nombre = document.getElementById('repNombre').value;
+  const id_sucursal = document.getElementById('repSucursal').value;
+  const telefono = document.getElementById('repTelefono').value;
+  const pin = document.getElementById('repPin').value;
 
-      if (!nombre) return alert('Ingresa el nombre del repartidor.');
+  if (!nombre) return alert('Ingresa el nombre del repartidor.');
+  if (!id_sucursal) return alert('Selecciona una sucursal asignada.');
 
-      const res = await fetch(`${API_URL}/repartidores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
-      });
+  try {
+    const res = await fetch(`${API_URL}/repartidores`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, id_sucursal, telefono, pin: pin || '1234' })
+    });
 
-      if (res.ok) {
-        alert('Repartidor registrado correctamente.');
-        document.getElementById('repNombre').value = '';
-        document.getElementById('repTelefono').value = '';
-        document.getElementById('repPin').value = '';
-        cargarRepartidores();
-      }
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('Repartidor registrado correctamente.');
+      document.getElementById('repNombre').value = '';
+      document.getElementById('repTelefono').value = '';
+      document.getElementById('repPin').value = '';
+      cargarRepartidores();
+    } else {
+      alert(data.error || 'Error al guardar el repartidor.');
     }
+  } catch (err) {
+    alert('Error de conexión al guardar el repartidor.');
+  }
+}
 
     async function reasignarSucursalRepartidor(id_usuario, id_sucursal) {
       await fetch(`${API_URL}/repartidores/${id_usuario}/datos`, {
