@@ -595,6 +595,7 @@ router.post('/viajes/finalizar', async (req, res) => {
 // ==========================================
 
 // Login de Usuarios del Sistema
+
 router.post('/auth/login', async (req, res) => {
   const { usuario, password } = req.body;
   try {
@@ -607,9 +608,17 @@ router.post('/auth/login', async (req, res) => {
         nombre_completo VARCHAR(100),
         puesto VARCHAR(50),
         id_sucursal INT,
+        permisos TEXT DEFAULT 'TODOS',
+        modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS',
         activo BOOLEAN DEFAULT true,
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Asegurar columnas en caso de que la tabla ya existiera antes
+    await pool.query(`
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS permisos TEXT DEFAULT 'TODOS';
+      ALTER TABLE usuarios_sistema ADD COLUMN IF NOT EXISTS modulos TEXT DEFAULT 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS';
     `);
 
     await pool.query(`
@@ -622,12 +631,19 @@ router.post('/auth/login', async (req, res) => {
       );
     `);
 
-    // 2. Insertar usuario FerreAdmin por defecto si la tabla está vacía
+    // 2. Insertar o actualizar usuario FerreAdmin por defecto con accesos completos
     const checkAdmin = await pool.query("SELECT * FROM usuarios_sistema WHERE usuario = 'FerreAdmin'");
     if (checkAdmin.rows.length === 0) {
       await pool.query(`
-        INSERT INTO usuarios_sistema (usuario, password, nombre_completo, puesto, activo)
-        VALUES ('FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', true);
+        INSERT INTO usuarios_sistema (usuario, password, nombre_completo, puesto, permisos, modulos, activo)
+        VALUES ('FerreAdmin', 'FerreAdmin', 'Administrador Principal', 'Administrador General (Todas)', 'TODOS', 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS', true);
+      `);
+    } else {
+      await pool.query(`
+        UPDATE usuarios_sistema 
+        SET permisos = 'TODOS', 
+            modulos = 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS' 
+        WHERE usuario = 'FerreAdmin';
       `);
     }
 
@@ -653,7 +669,7 @@ router.post('/auth/login', async (req, res) => {
       console.error("Error al guardar bitácora de auditoría:", audError);
     }
 
-    // 5. Responder con los datos del usuario
+    // 5. Responder con los datos del usuario INCLUYENDO permisos y módulos
     res.json({
       ok: true,
       usuario: {
@@ -661,7 +677,9 @@ router.post('/auth/login', async (req, res) => {
         usuario: user.usuario,
         nombre_completo: user.nombre_completo,
         puesto: user.puesto,
-        id_sucursal: user.id_sucursal
+        id_sucursal: user.id_sucursal,
+        permisos: user.permisos || 'TODOS',
+        modulos: user.modulos || 'MONITOREO,SUCURSALES,USUARIOS,BITACORA,ESTADISTICAS'
       }
     });
 
