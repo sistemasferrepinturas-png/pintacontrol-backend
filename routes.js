@@ -405,7 +405,7 @@ router.delete('/repartidores/:id', async (req, res) => {
    2.1 VIAJES Y RECORRIDOS (INICIO Y FINALIZACIÓN)
    ========================================================================== */
 
-// Endpoint para iniciar un nuevo viaje desde la App Móvil
+// Endpoint para iniciar un nuevo viaje desde la App Móvil con validación de seguridad
 router.post('/viajes/inicio', async (req, res) => {
   const { 
     id_usuario, 
@@ -419,7 +419,22 @@ router.post('/viajes/inicio', async (req, res) => {
   } = req.body;
 
   try {
-    // 1. Contar cuántos viajes lleva el repartidor hoy
+    // 1. CANDADO DE SEGURIDAD: Verificar si el repartidor ya tiene un viaje activo
+    const viajeActivo = await pool.query(
+      `SELECT id_viaje FROM viajes_recorridos 
+       WHERE id_usuario = $1 
+         AND (estatus IN ('EN_CURSO', 'EN_PROCESO') OR estado_viaje IN ('EN_CURSO', 'EN_PROCESO')) 
+         AND km_final IS NULL`,
+      [id_usuario]
+    );
+
+    if (viajeActivo.rows.length > 0) {
+      return res.status(400).json({ 
+        error: 'Ya tienes un recorrido en curso. Debes finalizar el recorrido activo antes de iniciar uno nuevo.' 
+      });
+    }
+
+    // 2. Contar cuántos viajes lleva el repartidor hoy
     const countRes = await pool.query(
       `SELECT COUNT(*) FROM viajes_recorridos 
        WHERE id_usuario = $1 AND (DATE(fecha_hora_inicio) = CURRENT_DATE OR DATE(fecha_inicio) = CURRENT_DATE)`,
@@ -427,7 +442,7 @@ router.post('/viajes/inicio', async (req, res) => {
     );
     const numero_viaje = parseInt(countRes.rows[0].count, 10) + 1;
 
-    // 2. Insertar el nuevo recorrido en la base de datos
+    // 3. Insertar el nuevo recorrido
     const insertRes = await pool.query(
       `INSERT INTO viajes_recorridos 
        (id_usuario, id_vehiculo, id_sucursal, direccion_destino, forma_pago_esperada, fondo_cambio_recibido, km_inicial, foto_odometro_inicio, estatus, estado_viaje, numero_viaje_del_dia, fecha_hora_inicio, fecha_inicio) 
