@@ -298,7 +298,8 @@ router.get('/repartidores', async (req, res) => {
         s.nombre AS sucursal,
         EXISTS (
           SELECT 1 FROM viajes_recorridos vr 
-          WHERE vr.id_usuario = u.id_usuario AND vr.estado_viaje = 'EN_PROCESO'
+          WHERE vr.id_usuario = u.id_usuario 
+            AND (vr.estado_viaje IN ('EN_PROCESO', 'EN_CURSO') OR vr.estatus IN ('EN_PROCESO', 'EN_CURSO'))
         ) AS en_recorrido
       FROM usuarios u
       LEFT JOIN sucursales s ON u.id_sucursal = s.id_sucursal
